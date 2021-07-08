@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outFile": "fail.js",
+    "target": "ES3",
+    "lib": ["ESNext", "DOM"],
+    "types": []
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

@@ -1,0 +1,48 @@
+const ZONE_HOST_SCORE: {
+  [zone: string]: {
+    [host: string]: number
+  }
+} = {
+  'zh-CN': {
+    'ajax.cdnjs.com': 50,
+    'cdnjs.cloudflare.com': 50,
+    'cdn.jsdelivr.net': 80,
+    'raw.githubusercontent.com': 10,
+    'cdnjs.loli.net': 70,
+    'lib.baomitu.com': 80,
+    'cdn.staticfile.org': 90,
+    'cdn.bootcss.com': 90,
+    'cdn.bootcdn.net': 80,
+    'unpkg.com': 50,
+    'g.alicdn.com': 90,
+    'pagecdn.io': 20,
+    'ajax.aspnetcdn.com': 60,
+    'ajax.googleapis.com': 10,
+    'code.jquery.com': 20,
+    'stackpath.bootstrapcdn.com': 30,
+    'maxcdn.bootstrapcdn.com': 30,
+    'cdn.datatables.net': 40,
+    'twemoji.maxcdn.com': 40,
+  },
+  '*': {
+    'ajax.cdnjs.com': 90,
+    'cdnjs.cloudflare.com': 90,
+    'cdn.jsdelivr.net': 40,
+    'raw.githubusercontent.com': 10,
+    'cdnjs.loli.net': 40,
+    'lib.baomitu.com': 20,
+    'cdn.staticfile.org': 20,
+    'cdn.bootcss.com': 20,
+    'cdn.bootcdn.net': 20,
+    'unpkg.com': 40,
+    'g.alicdn.com': 30,
+    'pagecdn.io': 40,
+    'ajax.aspnetcdn.com': 70,
+    'ajax.googleapis.com': 90,
+    'code.jquery.com': 50,
+    'stackpath.bootstrapcdn.com': 40,
+    'maxcdn.bootstrapcdn.com': 50,
+    'cdn.datatables.net': 50,
+    'twemoji.maxcdn.com': 50,
+  },
+}

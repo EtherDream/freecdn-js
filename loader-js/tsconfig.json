@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "outFile": "freecdn-loader.js",
+    "target": "ES3",
+    "lib": ["ESNext", "DOM", "WebWorker"],
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

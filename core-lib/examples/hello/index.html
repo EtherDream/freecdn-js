@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>FreeCDN CoreLib Demo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <script src="../../dist/freecdn.js"></script>
+  <style id="styleTest"></style>
+</head>
+<body>
+  <div>
+    <input id="txtTest" type="text" value="Hello World">
+    <button id="btnTest">Click</button>
+  </div>
+  <img id="imgTest">
+  <script>
+    async function loadResource() {
+      const freecdn = new FreeCDN('manifest.conf')
+      await freecdn.init()
+      
+      // load js
+      const js = await freecdn.fetchText('/assets/jquery.js')
+      window.eval(js)
+
+      // load css
+      const css = await freecdn.fetchText('/assets/bootstrap.css')
+      styleTest.textContent = css
+
+      // load image
+      const blob = await freecdn.fetchBlob('/assets/logo.png')
+      imgTest.src = URL.createObjectURL(blob)
+    }
+
+    async function main() {
+      await loadResource()
+      businessLogic()
+    }
+    main()
+  </script>
+  <script>
+    function businessLogic() {
+      $('#btnTest').click(function() {
+        var str = $('#txtTest').val()
+        alert(str)
+      })
+      // ...
+    }
+  </script>
+</body>
+</html>
