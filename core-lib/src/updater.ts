@@ -22,7 +22,7 @@ class Updater {
   private pollingInterval = UpdaterConf.DEFAULT_INTERVAL
   private lastTime = 0
   private setSvcTimer = 0
-  private backupUrls: string[]
+  private backupUrls: string[] = []
 
 
   public constructor(
