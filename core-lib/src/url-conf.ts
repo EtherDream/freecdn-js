@@ -22,6 +22,7 @@ class UrlConf {
       'prefix': ParamPrefix,
       'suffix': ParamSuffix,
       'hash': ParamHash,
+      'stream': ParamStream,
     }
     Object.values(this.nameClassMap).forEach((cls, i) => {
       cls.priority = i
