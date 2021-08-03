@@ -8,7 +8,7 @@ describe('basic', () => {
     await freecdn.init()
   })
 
-  describe('proxy', () => {
+  describe('file proxy', () => {
     it('1st to 3rd', async () => {
       const ret = await freecdn.fetchText('/hello/1')
       expect(ret).eq('Hello World')
@@ -74,6 +74,31 @@ describe('basic', () => {
     })
   })
 
+  describe('dir proxy', () => {
+    it('1st', async () => {
+      const ret = await freecdn.fetchText('/api/works')
+      expect(ret).eq('works')
+    })
+
+    it('3rd', async () => {
+      const ret = await freecdn.fetchText('http://127.0.0.1:10003/api/works')
+      expect(ret).eq('works')
+    })
+  })
+
+
+  describe('body proxy', () => {
+    it('post', async () => {
+      const body = new Uint8Array([0x00, 0x11, 0x22, 0x33])
+      const res = await freecdn.fetch('/api/echo-body', {
+        method: 'POST',
+        body,
+      })
+      const buf = await res.arrayBuffer()
+      const arr = new Uint8Array(buf)
+      expect(arr).deep.eq(body)
+    })
+  })
 
   describe('range request', () => {
     it('hello world 1-3', async () => {

@@ -20,7 +20,7 @@ describe('params', () => {
       const req = new Request('/mime.unknown')
       const res = await freecdn.fetch(req)
       expect(Object.fromEntries(res.headers))
-        .include({'content-type': 'application/octet-stream'})
+        .include({'content-type': 'text/plain'})
     })
 
     it('no ext', async () => {
@@ -80,16 +80,23 @@ describe('params', () => {
         .include({'x-via': 'XCDN', 'x-age': '100'})
     })
 
+    it('preserve all headers', async () => {
+      const req = new Request('/preserve-res-all-headers')
+      const res = await freecdn.fetch(req)
+      expect(Object.fromEntries(res.headers))
+        .include({'x-via': 'XCDN', 'x-age': '100'})
+    })
+
     it('overwrite headers', async () => {
       const req = new Request('/overwrite-res-headers')
       const res = await freecdn.fetch(req)
       expect(Object.fromEntries(res.headers))
-        .include({'x-via': 'freecdn', 'x-age': '0'})
+        .include({'x-via': 'XCDN', 'x-age': '0'})
     })
   })
 
 
-  describe('req-headers', () => {
+  describe('req_headers', () => {
     const CUSTOM_HEADERS = {
       'x-custom1': 'v1',
       'x-custom2': 'v2',
@@ -121,13 +128,22 @@ describe('params', () => {
         .include({'x-custom1': 'v1', 'x-custom2': 'v2'})
     })
 
+    it('preserve all headers', async () => {
+      const req = new Request('/preserve-req-all-headers', {
+        headers: CUSTOM_HEADERS
+      })
+      const res = await freecdn.fetch(req)
+      expect(await res.json())
+        .include({'x-custom1': 'v1', 'x-custom2': 'v2'})
+    })
+
     it('overwrite header', async () => {
       const req = new Request('/overwrite-req-headers', {
         headers: CUSTOM_HEADERS
       })
       const res = await freecdn.fetch(req)
       expect(await res.json())
-        .include({'x-custom1': 'abc', 'x-custom2': 'xyz'})
+        .include({'x-custom1': 'v1', 'x-custom2': 'xyz'})
     })
 
     it('spoof referrer', async () => {
@@ -250,6 +266,33 @@ describe('params', () => {
     it('basic', async () => {
       const txt = await freecdn.fetchText('/hello-xor')
       expect(txt).eq('HelloWorld')
+    })
+  })
+
+
+  describe('stream', () => {
+    async function getChunkNum(url) {
+      const res = await freecdn.fetch(url)
+      const reader = res.body.getReader()
+      let i = 0
+      for (;;) {
+        const ret = await reader.read()
+        if (ret.done) {
+          break
+        }
+        i++
+      }
+      return i
+    }
+
+    it('on', async () => {
+      const n = await getChunkNum('/stream-on')
+      expect(n).not.eq(1)
+    })
+
+    it('off', async () => {
+      const n = await getChunkNum('/stream-off')
+      expect(n).eq(1)
     })
   })
 

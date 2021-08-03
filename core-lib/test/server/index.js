@@ -13,6 +13,15 @@ app.get('/api/works', (req, res) => {
   res.send('works')
 })
 
+app.get('/api/no-mime', (req, res) => {
+  res.end('hello')
+})
+
+app.post('/api/echo-body', (req, res) => {
+  res.status(200)
+  req.pipe(res)
+})
+
 app.get('/api/echo-headers', (req, res) => {
   const json = JSON.stringify(req.headers, null, 2)
   res.contentType('text/json')
@@ -47,6 +56,7 @@ app.get('/api/delay-res', (req, res) => {
 })
 
 app.get('/api/delay-write', (req, res) => {
+  res.socket.setNoDelay()
   res.writeHead(200)
   res.write('>')
 
@@ -90,3 +100,4 @@ app.listen(10001, () => {
 
 // 3rd site
 app.listen(10003)
+app.listen(10004)
