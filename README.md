@@ -64,6 +64,19 @@ Service Worker 安装后，页面加载 loader-js 得到的不再是原先内容
 
 # 调试
 
+为本项目创建全局链接：
+
+    npm link
+
+进入 freecdn 项目，使用本地 freecdn-js 包代替远程版本：
+
+    npm link freecdn-js
+
+同时 freecdn 项目也可通过 `npm link` 创建全局链接，之后执行 `freecdn` 命令时直接使用本地版本。
+
+
+# 编译
+
 本项目所有模块都使用 TypeScript 开发。执行：
 
     npm run dev
