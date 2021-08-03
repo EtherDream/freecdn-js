@@ -1,4 +1,4 @@
-const REG_HEAD_LINE = /^(?:\/|https?:|@).+/mg
+const REG_HEAD_LINE = /^(?:\/|https?:|@).*/mg
 
 
 class Manifest {

@@ -61,7 +61,16 @@ class FreeCDN {
       return dest
     }
 
-    const fileConf = manifest.get(dest) as FileConf
+    let fileName: string
+    let suffix = ''
+
+    if (dest instanceof Array) {
+      [fileName, suffix] = dest
+    } else {
+      fileName = dest
+    }
+
+    const fileConf = manifest.get(fileName) as FileConf
     fileConf.parse()
 
     let fileHash = ''
@@ -79,7 +88,7 @@ class FreeCDN {
       }
     }
 
-    const fileLoader = new FileLoader(fileConf, req, manifest)
+    const fileLoader = new FileLoader(fileConf, req, manifest, suffix)
     const promise = promisex<Response>()
 
     // 1-hash file, no stream
@@ -209,41 +218,49 @@ class FreeCDN {
   }
 
   private tryFile(manifest: Manifest, req: Request) {
-    let path = stripUrlQuery(toRelUrl(req.url))
+    const url = new URL(req.url)
+    const origin = url.host === MY_HOST ? '' : url.origin
 
-    // merge slashes (exclude scheme://)
-    let prefix = ''
-    if (path[0] !== '/') {
-      // 'https://'.length = 8
-      // 'http://x'.length = 8
-      prefix = path.substr(0, 8)
-      path = path.substr(8)
-    }
-    path = prefix + path.replace(/\/{2,}/g, '/')
+    // merge slashes
+    const path = url.pathname.replace(/\/{2,}/g, '/')
+    const file = origin + path
 
     // image upgrade
-    if (REG_IMG_EXTS.test(path) && req.mode !== 'cors' && !req.integrity) {
+    if (REG_IMG_EXTS.test(file) && req.mode !== 'cors' && !req.integrity) {
       const accept = req.headers.get('accept') || ''
       if (accept.includes('image/avif')) {
-        if (manifest.has(path + '.avif')) {
-          return path + '.avif'
+        if (manifest.has(file + '.avif')) {
+          return file + '.avif'
         }
       }
       if (accept.includes('image/webp')) {
-        if (manifest.has(path + '.webp')) {
-          return path + '.webp'
+        if (manifest.has(file + '.webp')) {
+          return file + '.webp'
         }
       }
     }
 
-    if (manifest.has(path)) {
-      return path
+    if (manifest.has(file)) {
+      return file
     }
-    if (path.endsWith('/') && manifest.has(path + 'index.html')) {
-      return path + 'index.html'
+    if (file.endsWith('/') && manifest.has(file + 'index.html')) {
+      return file + 'index.html'
     }
-    if (manifest.has(path + '/index.html')) {
-      return Response.redirect(path + '/')
+    if (manifest.has(file + '/index.html')) {
+      return Response.redirect(file + '/')
+    }
+
+    // directory match
+    let dir = path.replace(/[^/]*$/, '')
+    for (;;) {
+      if (manifest.has(origin + dir)) {
+        const suffix = path.substr(dir.length) + url.search
+        return [origin + dir, suffix]
+      }
+      if (dir === '/') {
+        break
+      }
+      dir = dir.replace(/[^/]+\/$/, '')
     }
   }
 }

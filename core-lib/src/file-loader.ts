@@ -34,7 +34,8 @@ class FileLoader {
   public constructor(
     public readonly fileConf: FileConf,
     public readonly rawReq: Request,
-    public readonly manifest: Manifest
+    public readonly manifest: Manifest,
+    private readonly suffix: string
   ) {
     const range = rawReq.headers.get('range')
     if (range) {
@@ -147,7 +148,8 @@ class FileLoader {
     const ret = this.getNextUrl()
     if (!ret) {
       if (this.urlLoaderSet.size === 0) {
-        const err = new FileLoaderError('failed to load: ' + this.fileConf.name)
+        const url = this.fileConf.name + this.suffix
+        const err = new FileLoaderError('failed to load: ' + url)
         err.urlErrs = this.urlErrs
         this.onError(err)
       }
@@ -167,7 +169,10 @@ class FileLoader {
   }
 
   private createUrlLoader(urlConf: UrlConf) {
-    const urlLoader = new UrlLoader(urlConf, this.manifest)
+    const url = urlConf.url + this.suffix
+    const mods = urlConf.parse(this.manifest)
+
+    const urlLoader = new UrlLoader(url, mods)
     this.urlLoaderSet.add(urlLoader)
 
     urlLoader.onData = (chunk) => {
