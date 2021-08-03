@@ -1,6 +1,4 @@
 class UrlLoader {
-  public readonly url: string
-  private readonly paramMods: ParamBase[]
   private readonly abortCtrl = new AbortController()
 
   private pauseSignal: PromiseX | null
@@ -15,9 +13,9 @@ class UrlLoader {
   public onError: (err: Error) => void
 
 
-  public constructor(urlConf: UrlConf, manifest: Manifest) {
-    this.url = urlConf.url
-    this.paramMods = urlConf.parse(manifest)
+  public constructor(
+    public readonly url: string,
+    private readonly paramMods: ParamBase[]) {
   }
 
   public async request(fileLoader: FileLoader) {
@@ -47,10 +45,13 @@ class UrlLoader {
     const {rawReq} = fileLoader
     const reqArgs: RequestArgs = {
       method: rawReq.method,
-      body: rawReq.body,
       referrer: rawReq.referrer,
       referrerPolicy: 'same-origin',
       headers: new Headers(),
+    }
+
+    if (rawReq.method === 'POST') {
+      reqArgs.body = await rawReq.arrayBuffer()
     }
 
     for (const mod of this.paramMods) {
