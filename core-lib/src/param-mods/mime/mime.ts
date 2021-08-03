@@ -31,7 +31,7 @@ class ParamMime extends ParamBase {
     super()
   }
 
-  public onResponse(resArgs: ResponseArgs, fileLoader: FileLoader) {
+  public onResponse(resArgs: ResponseArgs, fileLoader: FileLoader, rawRes: Response) {
     let type: string | undefined
 
     if (this.mime === '') {
@@ -41,7 +41,12 @@ class ParamMime extends ParamBase {
         type = ParamMime.extTypeMap.get(ext)
       }
       if (!type) {
-        type = 'application/octet-stream'
+        const rawType = rawRes.headers.get('content-type')
+        if (rawType) {
+          type = getPair(rawType, ';')[0]
+        } else {
+          type = 'application/octet-stream'
+        }
       }
     } else {
       type = this.mime
