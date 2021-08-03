@@ -3,6 +3,7 @@ class ParamReqHeaders extends ParamBase {
 
   public static parse(conf: string) {
     const headers: [string, string][] = []
+    let preserveAll = false
 
     // {"header-to-preserve": "", "header-to-add": "val"}
     const map = parseJson(conf)
@@ -13,9 +14,13 @@ class ParamReqHeaders extends ParamBase {
       if (typeof v !== 'string') {
         return 'invalid header'
       }
-      headers.push([k, v])
+      if (k === '*') {
+        preserveAll = true
+      } else {
+        headers.push([k, v])
+      }
     }
-    return [headers]
+    return [headers, preserveAll]
   }
 
   public static parseConf(conf: string) {
@@ -24,26 +29,39 @@ class ParamReqHeaders extends ParamBase {
 
 
   public constructor(
-    private readonly headers: readonly [string, string][]
+    private readonly headers: readonly [string, string][],
+    private readonly preserveAll: boolean
   ) {
     super()
   }
 
   public onRequest(reqArgs: RequestArgs, fileLoader: FileLoader) {
+    const {rawReq} = fileLoader
+
+    if (this.preserveAll) {
+      for (const [k, v] of rawReq.headers) {
+        reqArgs.headers.set(k, v)
+      }
+      for (const [k, v] of this.headers) {
+        reqArgs.headers.set(k, v)
+      }
+      return
+    }
+
     for (const [k, v] of this.headers) {
       if (k === 'referer') {
-        reqArgs.referrer = v || fileLoader.rawReq.referrer
+        reqArgs.referrer = v || rawReq.referrer
         continue
       }
       if (v === '') {
         // preserve
-        const rawVal = fileLoader.rawReq.headers.get(k)
+        const rawVal = rawReq.headers.get(k)
         if (rawVal !== null) {
           reqArgs.headers.set(k, rawVal)
         }
       } else {
         // add
-        reqArgs.headers.append(k, v)
+        reqArgs.headers.set(k, v)
       }
     }
   }
