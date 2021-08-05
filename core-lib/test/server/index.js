@@ -18,8 +18,10 @@ app.get('/api/no-mime', (req, res) => {
 })
 
 app.post('/api/echo-body', (req, res) => {
-  res.status(200)
-  req.pipe(res)
+  setTimeout(() => {
+    res.status(200)
+    req.pipe(res)
+  }, +req.query.delay)
 })
 
 app.get('/api/echo-headers', (req, res) => {

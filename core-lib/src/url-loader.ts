@@ -23,7 +23,7 @@ class UrlLoader {
     try {
       err = await this.requestUnsafe(fileLoader)
     } catch (e) {
-      console.assert(e instanceof ParamError)
+      console.assert(e instanceof ParamError, e)
       err = e
     }
 
@@ -51,7 +51,7 @@ class UrlLoader {
     }
 
     if (rawReq.method === 'POST') {
-      reqArgs.body = await rawReq.arrayBuffer()
+      reqArgs.body = await rawReq.clone().arrayBuffer()
     }
 
     for (const mod of this.paramMods) {
