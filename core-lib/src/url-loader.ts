@@ -43,14 +43,15 @@ class UrlLoader {
 
   private async requestUnsafe(fileLoader: FileLoader) {
     const {rawReq} = fileLoader
+    const {method} = rawReq
     const reqArgs: RequestArgs = {
-      method: rawReq.method,
+      method,
       referrer: rawReq.referrer,
       referrerPolicy: 'same-origin',
       headers: new Headers(),
     }
 
-    if (rawReq.method === 'POST') {
+    if (method === 'POST' || method === 'PUT') {
       reqArgs.body = await rawReq.clone().arrayBuffer()
     }
 

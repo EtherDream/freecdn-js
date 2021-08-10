@@ -1,4 +1,4 @@
-const BACKUP_PARAMS = ['open_timeout', 'recv_timeout', 'hash']
+const BACKUP_PARAMS = ['open_timeout', 'recv_timeout', 'hash', 'req_headers']
 
 
 class FileLoaderError extends Error {

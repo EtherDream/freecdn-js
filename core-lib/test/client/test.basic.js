@@ -88,17 +88,23 @@ describe('basic', () => {
 
 
   describe('body proxy', () => {
-    it('post', async () => {
+    async function send(method) {
       const body = new Uint8Array([0x00, 0x11, 0x22, 0x33])
-      const res = await freecdn.fetch('/api/echo-body', {
-        method: 'POST',
-        body,
-      })
+      const res = await freecdn.fetch('/api/echo-body', {method, body})
       const buf = await res.arrayBuffer()
       const arr = new Uint8Array(buf)
       expect(arr).deep.eq(body)
+    }
+
+    it('post', async () => {
+      await send('POST')
+    })
+
+    it('put', async () => {
+      await send('PUT')
     })
   })
+
 
   describe('range request', () => {
     it('hello world 1-3', async () => {

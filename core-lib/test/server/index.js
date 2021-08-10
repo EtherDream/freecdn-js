@@ -17,7 +17,7 @@ app.get('/api/no-mime', (req, res) => {
   res.end('hello')
 })
 
-app.post('/api/echo-body', (req, res) => {
+app.use('/api/echo-body', (req, res) => {
   setTimeout(() => {
     res.status(200)
     req.pipe(res)
