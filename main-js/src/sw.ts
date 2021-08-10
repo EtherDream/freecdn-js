@@ -89,11 +89,6 @@ namespace Sw {
   ) {
     const req = e.request
 
-    // https://bugs.chromium.org/p/chromium/issues/detail?id=823392
-    if (req.cache === 'only-if-cached' && req.mode !== 'same-origin') {
-      return
-    }
-
     // debug
     if (req.url.endsWith('/freecdn-update')) {
       mFreeCDN.update().then(result => {
