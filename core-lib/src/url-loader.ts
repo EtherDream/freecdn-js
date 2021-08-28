@@ -70,11 +70,6 @@ class UrlLoader {
       return err
     }
 
-    const {status} = res
-    if (status !== 200) {
-      return new Error('invalid http status. code: ' + status)
-    }
-
     const resArgs: ResponseArgs = {
       status: res.status,
       statusText: res.statusText,

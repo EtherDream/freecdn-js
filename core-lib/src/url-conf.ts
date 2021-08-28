@@ -8,6 +8,7 @@ class UrlConf {
       'recv_timeout': ParamRecvTimeout,
       'referrer_policy': ParamReferrerPolicy,
       'req_headers': ParamReqHeaders,
+      'valid_status': ParamValidStatus,
 
       'headers': ParamHeaders,
       'expires': ParamExpires,
