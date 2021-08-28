@@ -5,9 +5,7 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
     "skipLibCheck": true,
     "types": [],
-    "strict": true,
-    "strictPropertyInitialization": false,
-    "suppressImplicitAnyIndexErrors": true
+    "strict": true
   },
   "include": [
     "src/**/*.ts"

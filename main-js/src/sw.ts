@@ -3,6 +3,11 @@
 ///<reference path="hook.ts"/>
 
 
+declare const FREECDN_SHARED_MODE: boolean
+declare const FREECDN_PUBLIC_KEY: string
+declare const Q: any[]
+
+
 namespace Sw {
   const GLOBAL: ServiceWorkerGlobalScope = self as any
 
@@ -71,7 +76,7 @@ namespace Sw {
    */
   function loaderModeInit() {
     type tuple = Parameters<typeof loaderModeHandler>
-    const queue: any[] = GLOBAL['Q']
+    const queue: any[] = Q
 
     // hook Q.push()
     queue.push = loaderModeHandler as any
@@ -113,7 +118,7 @@ namespace Sw {
   async function main() {
     mFreeCDN = new FreeCDN('freecdn-manifest.txt')
 
-    const isSharedMode: boolean = GLOBAL['FREECDN_SHARED_MODE']
+    const isSharedMode: boolean = typeof FREECDN_SHARED_MODE !== 'undefined'
     let publicKey: string
 
     if (isSharedMode) {
@@ -124,9 +129,9 @@ namespace Sw {
       // install hook as early as possible,
       // don't use await before this
       sharedModeInit()
-      publicKey = GLOBAL['FREECDN_PUBLIC_KEY']
+      publicKey = FREECDN_PUBLIC_KEY
     } else {
-      publicKey = GLOBAL['Q'].shift()
+      publicKey = Q.shift()
     }
 
     if (publicKey) {
