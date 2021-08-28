@@ -35,7 +35,7 @@ class ParamMime extends ParamBase {
     let type: string | undefined
 
     if (this.mime === '') {
-      const m = fileLoader.fileConf.name.match(/\.(\w+)$/)
+      const m = fileLoader.getFileConfUrl().match(/\.(\w+)$/)
       if (m) {
         const ext = m[1].toLowerCase()
         type = ParamMime.extTypeMap.get(ext)

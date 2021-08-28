@@ -10,6 +10,7 @@ class UrlConf {
       'req_headers': ParamReqHeaders,
       'valid_status': ParamValidStatus,
 
+      'pack': ParamPack,
       'headers': ParamHeaders,
       'expires': ParamExpires,
       'mime': ParamMime,

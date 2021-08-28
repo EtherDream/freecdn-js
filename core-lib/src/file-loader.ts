@@ -35,7 +35,7 @@ class FileLoader {
     public readonly fileConf: FileConf,
     public readonly rawReq: Request,
     public readonly manifest: Manifest,
-    private readonly suffix: string
+    public suffix: string | null
   ) {
     const range = rawReq.headers.get('range')
     if (range) {
@@ -148,8 +148,7 @@ class FileLoader {
     const ret = this.getNextUrl()
     if (!ret) {
       if (this.urlLoaderSet.size === 0) {
-        const url = this.fileConf.name + this.suffix
-        const err = new FileLoaderError('failed to load: ' + url)
+        const err = new FileLoaderError('failed to load: ' + this.getFileConfUrl())
         err.urlErrs = this.urlErrs
         this.onError(err)
       }
@@ -168,8 +167,19 @@ class FileLoader {
     this.createUrlLoader(conf)
   }
 
+  public getFileConfUrl() {
+    return this.getFinalUrl(this.fileConf.name)
+  }
+
+  private getFinalUrl(url: string) {
+    if (url.endsWith('/') && this.suffix !== null) {
+      return url + this.suffix
+    }
+    return url
+  }
+
   private createUrlLoader(urlConf: UrlConf) {
-    const url = urlConf.url + this.suffix
+    const url = this.getFinalUrl(urlConf.url)
     const mods = urlConf.parse(this.manifest)
 
     const urlLoader = new UrlLoader(url, mods)
