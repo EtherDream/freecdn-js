@@ -3,8 +3,8 @@ const REG_SUB_LINE = /^\s+([^#\s].+?)\s*$/mg
 
 
 class FileConf {
-  public urlConfs: readonly UrlConf[]
-  public params: params_t
+  public urlConfs!: readonly UrlConf[]
+  public params!: params_t
 
 
   public constructor(

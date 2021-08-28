@@ -14,7 +14,7 @@ class ParamRecvTimeout extends ParamBase {
   }
 
 
-  private fileLoader: FileLoader
+  private fileLoader!: FileLoader
   private tid = 0
   private sum = 0
 

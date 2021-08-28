@@ -3,7 +3,7 @@ const REG_HEAD_LINE = /^(?:\/|https?:|@).*/mg
 
 class Manifest {
   private readonly urlFileMap = new Map<string, FileConf>()
-  public globalParams: params_t
+  public globalParams!: params_t
 
 
   public has(key: string) {

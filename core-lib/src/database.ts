@@ -1,5 +1,5 @@
 class Database {
-  private db: IDBDatabase
+  private db!: IDBDatabase
 
 
   public constructor(

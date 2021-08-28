@@ -5,7 +5,7 @@ class FileLoaderError extends Error {
   public constructor(message: string) {
     super(message)
   }
-  public urlErrs: {url: string, err: Error}[]
+  public urlErrs!: {url: string, err: Error}[]
 }
 
 
@@ -16,19 +16,19 @@ class FileLoader {
   private delayTid = 0
   private urlErrs: {url: string, err: Error}[] = []
 
-  private readonly hasRange: boolean
-  private readonly rangeBegin: number
-  private readonly rangeEnd: number
-  private readonly fileSize: number
+  private readonly hasRange: boolean = false
+  private readonly rangeBegin!: number
+  private readonly rangeEnd!: number
+  private readonly fileSize!: number
 
   private opened = false
   private closed = false
   private bytesRead = 0
 
-  public onOpen: (args: ResponseArgs) => void
-  public onData: (chunk: Uint8Array) => void
-  public onEnd: () => void
-  public onError: (err: FileLoaderError) => void
+  public onOpen!: (args: ResponseArgs) => void
+  public onData!: (chunk: Uint8Array) => void
+  public onEnd!: () => void
+  public onError!: (err: FileLoaderError) => void
 
 
   public constructor(

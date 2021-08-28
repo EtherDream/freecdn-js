@@ -1,16 +1,16 @@
 class UrlLoader {
   private readonly abortCtrl = new AbortController()
 
-  private pauseSignal: PromiseX | null
+  private pauseSignal: PromiseX | undefined
   private isNetErr = false
   private isDone = false
   private isAborted = false
 
   public bytesRead = 0
-  public onResponse: (args: ResponseArgs) => void
-  public onData: (chunk: Uint8Array) => void
-  public onEnd: () => void
-  public onError: (err: Error) => void
+  public onResponse!: (args: ResponseArgs) => void
+  public onData!: (chunk: Uint8Array) => void
+  public onEnd!: () => void
+  public onError!: (err: Error) => void
 
 
   public constructor(
@@ -19,7 +19,7 @@ class UrlLoader {
   }
 
   public async request(fileLoader: FileLoader) {
-    let err
+    let err: any
     try {
       err = await this.requestUnsafe(fileLoader)
     } catch (e) {
@@ -147,7 +147,7 @@ class UrlLoader {
 
   public resume() {
     this.pauseSignal?.resolve()
-    this.pauseSignal = null
+    this.pauseSignal = undefined
   }
 
   public abort(reason: any) {

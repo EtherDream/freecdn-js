@@ -98,7 +98,7 @@ namespace Network {
     let res: Response
     try {
       res = await NATIVE_FETCH(req)
-    } catch (err) {
+    } catch (err: any) {
       parseFetchError(err, req, hostInfo, t0)
       throw err
     } finally {
