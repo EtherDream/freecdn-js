@@ -10,26 +10,18 @@ class ParamSize extends ParamBase {
 
 
   private remain: number
-  private done = false
 
-  public constructor(
-    private readonly size: number
-  ) {
+  public constructor(size: number) {
     super()
     this.remain = size
   }
 
   public onData(chunk: Uint8Array) {
-    if (this.done) {
+    if (this.remain <= 0) {
       return EMPTY_BUF
     }
     const remain = (this.remain -= chunk.length)
-    if (remain > 0) {
-      return chunk
-    }
-    this.done = true
-
-    if (remain === 0) {
+    if (remain >= 0) {
       return chunk
     }
     // remain < 0, return [0, END + remain)
