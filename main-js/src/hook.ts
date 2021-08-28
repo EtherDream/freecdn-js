@@ -1,13 +1,8 @@
 /**
  * JS Hook Util
- * example: https://codepen.io/etherdream/pen/WNoQQbG?editors=0011
+ * example: https://codepen.io/etherdream/pen/WNoQQbG?editors=0012
  */
 namespace Hook {
-  const {
-    getOwnPropertyDescriptor,
-    defineProperty,
-  } = Object
-
   /**
    * hook function
    */
@@ -51,7 +46,7 @@ namespace Hook {
     getterFactory: GETTER_FACTORY | null,
     setterFactory: SETTER_FACTORY | null,
   ) {
-    const desc = getOwnPropertyDescriptor(obj, key)
+    const desc = Object.getOwnPropertyDescriptor(obj, key)
     if (!desc) {
       return false
     }
@@ -61,7 +56,7 @@ namespace Hook {
     if (setterFactory) {
       func(desc, 'set', setterFactory)
     }
-    defineProperty(obj, key, desc)
+    Object.defineProperty(obj, key, desc)
     return true
   }
 }
