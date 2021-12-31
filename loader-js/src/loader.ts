@@ -37,13 +37,15 @@ declare let Q: any[]
       return
     }
     fetch(url, {integrity: MAIN_JS_HASH}).then(res => {
-      res.text().then(txt => {
+      return res.text().then(txt => {
         if (flag) {
           return
         }
         flag = 1
         globalEval(txt)
       })
+    }).catch(err => {
+      console.warn(err)
     })
   }
 
