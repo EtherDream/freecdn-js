@@ -13,6 +13,12 @@ app.get('/api/works', (req, res) => {
   res.send('works')
 })
 
+app.get('/api/set-status', (req, res) => {
+  const {status} = req.query
+  res.status(+status)
+  res.send(status)
+})
+
 app.get('/api/no-mime', (req, res) => {
   res.end('hello')
 })

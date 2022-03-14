@@ -154,7 +154,20 @@ describe('params', () => {
   })
 
 
-  describe('referrer-policy', () => {
+  describe('valid_status', () => {
+    it('multi', async () => {
+      const txt = await freecdn.fetchText('/valid-status-multi')
+      expect(txt).eq('211')
+    })
+
+    it('any', async () => {
+      const txt = await freecdn.fetchText('/valid-status-any')
+      expect(txt).eq('220')
+    })
+  })
+
+
+  describe('referrer_policy', () => {
     it('full', async () => {
       const res = await freecdn.fetch('/referrer-full')
       expect(await res.json())

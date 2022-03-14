@@ -8,6 +8,7 @@ const DEFAULT_PARAMS = `
  expires=30s
  mime=auto
  open_timeout=10s
+ valid_status=200
 `
 const DEFAULT_MANIFEST_PATH = '/freecdn-manifest.txt'
 const INTERNAL_PATH = 'freecdn-internal/' + (IS_DEBUG ? 'dev' : VER)
