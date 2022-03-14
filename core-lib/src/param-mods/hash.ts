@@ -7,7 +7,7 @@ class ParamHash extends ParamBase {
   public static parseConf(conf: string) {
     // conf format:
     // [blksize;]hash1,hash2,...
-    let blkLen = Infinity
+    let blkLen = 1e9
     let hashes = conf
 
     const pos = conf.indexOf(';')
@@ -20,10 +20,10 @@ class ParamHash extends ParamBase {
       }
     }
     const hashBins: Uint8Array[] = []
-    const hashHexs = hashes.split(',')
+    const hashB64s = hashes.split(',')
 
-    for (let i = hashHexs.length - 1; i !== -1; i--) {
-      const bin = base64Decode(hashHexs[i])
+    for (let i = hashB64s.length - 1; i !== -1; i--) {
+      const bin = base64Decode(hashB64s[i])
       if (!bin || bin.length !== LEN.SHA256_BIN) {
         return 'invalid block hash'
       }
