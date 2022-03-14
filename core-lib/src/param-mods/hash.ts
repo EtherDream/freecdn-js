@@ -12,8 +12,8 @@ class ParamHash extends ParamBase {
 
     const pos = conf.indexOf(';')
     if (pos > 0) {
-      const blkLenStr = conf.substr(0, pos)
-      hashes = conf.substr(pos + 1)
+      const blkLenStr = conf.substring(0, pos)
+      hashes = conf.substring(pos + 1)
       blkLen = parseByteUnit(blkLenStr)
       if (isNaN(blkLen)) {
         return 'invalid block length'

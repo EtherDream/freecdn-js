@@ -254,7 +254,7 @@ class FreeCDN {
     let dir = path.replace(/[^/]*$/, '')
     for (;;) {
       if (manifest.has(origin + dir)) {
-        const suffix = path.substr(dir.length) + url.search
+        const suffix = path.substring(dir.length) + url.search
         return [origin + dir, suffix]
       }
       if (dir === '/') {
