@@ -1,0 +1,6 @@
+#PACKv1
+assets/css/empty.css:0
+assets/css/main.css:39
+assets/js/main.js:16
+index.html:20
+body, input { font-family: monospace; }console.log(123)<h1>Hello World</h1>
