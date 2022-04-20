@@ -111,14 +111,17 @@ ${BR_GLUE_PATH}
     super()
   }
 
-  public onData(chunk: Uint8Array) {
+  public async onData(chunk: Uint8Array) {
     if (ParamBr.signal) {
-      return this.pending(chunk)
+      await this.waitWasm()
     }
     return this.process(chunk)
   }
 
-  public onEnd(chunk: Uint8Array) {
+  public async onEnd(chunk: Uint8Array) {
+    if (ParamBr.signal) {
+      await this.waitWasm()
+    }
     // ???
     let buf = EMPTY_BUF
     if (chunk.length > 0) {
@@ -128,12 +131,11 @@ ${BR_GLUE_PATH}
     return buf
   }
 
-  private async pending(chunk: Uint8Array) {
+  private async waitWasm() {
     await ParamBr.signal
     if (ParamBr.hasErr) {
       throw new ParamError('failed to load br decoder')
     }
-    return this.process(chunk)
   }
 
   private process(chunk: Uint8Array) {

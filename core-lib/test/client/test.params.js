@@ -216,8 +216,13 @@ describe('params', () => {
 
 
   describe('br', () => {
-    it('basic', async () => {
-      const txt = await freecdn.fetchText('/br-test')
+    it('small-file', async () => {
+      const txt = await freecdn.fetchText('/br-small.js')
+      expect(txt).eq('Hello World')
+    })
+
+    it('big-file', async () => {
+      const txt = await freecdn.fetchText('/br-big.js')
       expect(txt).length(177366)
     })
 
