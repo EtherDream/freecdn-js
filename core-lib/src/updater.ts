@@ -26,8 +26,8 @@ class Updater {
 
 
   public constructor(
-    private readonly freecdn: FreeCDN,
     manifestPath: string,
+    private onAvailable: (manifest: Manifest) => void
   ) {
     const url = new URL(manifestPath, location.href)
     console.assert(url.host === MY_HOST)
@@ -46,6 +46,8 @@ class Updater {
     }
     const buf = await res.arrayBuffer()
     const bin = new Uint8Array(buf)
+
+    // 使用公钥校验缓存配置（缓存可被恶意脚本篡改）
     if (!await KeyManager.verify(bin)) {
       return
     }
@@ -57,19 +59,11 @@ class Updater {
 
   public async init() {
     const manifest = await this.getManifestFromCache()
-    if (!manifest) {
-      await this.update()
-      return
+    if (manifest) {
+      // 先使用本地缓存的配置
+      this.onAvailable(manifest)
     }
-    const params = manifest.getParams('@update')
-    if (params) {
-      this.parseBackupParam(params)
-    }
-    if (!await this.update()) {
-      console.warn('[FreeCDN/Updater] use cached manifest')
-      this.freecdn.manifest = manifest
-      this.applyConfs(manifest)
-    }
+    await this.update()
   }
 
   public async update() {
@@ -152,7 +146,7 @@ class Updater {
     }
     this.manifestHash = hash
 
-    // save manifest to cache
+    // 缓存最新的清单内容
     const res = new Response(bytes)
     CacheManager.addCache(this.manifestUrl, res)
 
@@ -160,17 +154,10 @@ class Updater {
     const txt = bytesToUtf8(bytes)
 
     await manifest.parse(txt)
-    this.freecdn.manifest = manifest
-
-    this.applyConfs(manifest)
+    this.onAvailable(manifest)
   }
 
-  private applyConfs(manifest: Manifest) {
-    this.applyUpdateParams(manifest.getParams('@update') || EMPTY_PARAMS)
-    // ...
-  }
-
-  private applyUpdateParams(params: params_t) {
+  public applyConfs(params: params_t) {
     this.backupUrls = this.parseBackupParam(params)
 
     const interval = this.parseIntervalParam(params)

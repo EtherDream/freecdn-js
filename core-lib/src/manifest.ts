@@ -1,9 +1,20 @@
+//
+// 匹配清单中的文件块。例如：
+//
+// (http://foo/path/to/file)
+//    ...
+// (/path/to/file)
+//    ...
+// (@config)
+//    ...
+// 其中 $0 为文件名，内容部分只匹配不捕获，之后通过 lastIndex 截取
+//
 const REG_HEAD_LINE = /^(?:\/|https?:|@).*/mg
 
 
 class Manifest {
   private readonly urlFileMap = new Map<string, FileConf>()
-  public globalParams: params_t
+  public globalParams!: params_t
 
 
   public has(key: string) {
@@ -46,7 +57,7 @@ class Manifest {
       const m = REG_HEAD_LINE.exec(txt)
       if (last > 0) {
         if (name[0] !== '@') {
-          name = encodeURI(toRelUrl(name))
+          name = toRelUrl(name)
         }
         const curr = m ? m.index : txt.length
         const part = txt.substring(last, curr)

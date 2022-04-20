@@ -35,10 +35,13 @@ class ParamMime extends ParamBase {
     let type: string | undefined
 
     if (this.mime === '') {
-      const m = fileLoader.fileConf.name.match(/\.(\w+)$/)
-      if (m) {
-        const ext = m[1].toLowerCase()
-        type = ParamMime.extTypeMap.get(ext)
+      const url = fileLoader.getFileConfUrl()
+      if (!url.includes('?')) {
+        const m = url.match(/\.(\w+)$/)
+        if (m) {
+          const ext = m[1].toLowerCase()
+          type = ParamMime.extTypeMap.get(ext)
+        }
       }
       if (!type) {
         const rawType = rawRes.headers.get('content-type')

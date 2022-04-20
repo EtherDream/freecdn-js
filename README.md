@@ -1,4 +1,6 @@
-# 简介
+# freecdn-js
+
+[![npm version](https://img.shields.io/npm/v/freecdn-js.svg?style=flat)](https://www.npmjs.com/package/freecdn-js)
 
 [freecdn](https://github.com/EtherDream/freecdn) 前端脚本。
 

@@ -1,11 +1,16 @@
-const BACKUP_PARAMS = ['open_timeout', 'recv_timeout', 'hash', 'req_headers']
-
+const FILE_BACKUP_PARAMS = [
+  'open_timeout',
+  'recv_timeout',
+  'hash',
+  'req_headers',
+  'valid_status',
+]
 
 class FileLoaderError extends Error {
   public constructor(message: string) {
     super(message)
   }
-  public urlErrs: {url: string, err: Error}[]
+  public urlErrs!: {url: string, err: Error}[]
 }
 
 
@@ -16,26 +21,27 @@ class FileLoader {
   private delayTid = 0
   private urlErrs: {url: string, err: Error}[] = []
 
-  private readonly hasRange: boolean
-  private readonly rangeBegin: number
-  private readonly rangeEnd: number
-  private readonly fileSize: number
+  private readonly hasRange: boolean = false
+  private readonly rangeBegin!: number
+  private readonly rangeEnd!: number
+  private readonly fileSize!: number
 
   private opened = false
   private closed = false
   private bytesRead = 0
 
-  public onOpen: (args: ResponseArgs) => void
-  public onData: (chunk: Uint8Array) => void
-  public onEnd: () => void
-  public onError: (err: FileLoaderError) => void
+  public onOpen!: (args: ResponseArgs) => void
+  public onData!: (chunk: Uint8Array) => void
+  public onEnd!: () => void
+  public onError!: (err: FileLoaderError) => void
 
 
   public constructor(
     public readonly fileConf: FileConf,
     public readonly rawReq: Request,
     public readonly manifest: Manifest,
-    private readonly suffix: string
+    public readonly weightConf: Map<string, number>,
+    public suffix: string
   ) {
     const range = rawReq.headers.get('range')
     if (range) {
@@ -53,14 +59,16 @@ class FileLoader {
     }
 
     // 原始 URL 作为后备资源
+    // 但不能对内容进行修改，例如 pos、xor 等操作，因此只保留白名单中的参数
     const backupParams = new Map<string, string>()
-    for (const k of BACKUP_PARAMS) {
+    for (const k of FILE_BACKUP_PARAMS) {
       const v = fileConf.params.get(k)
       if (v !== undefined) {
         backupParams.set(k, v)
       }
     }
     const backupUrlConf = new UrlConf(fileConf.name, backupParams)
+
     this.urlConfs = fileConf.urlConfs.concat(backupUrlConf)
   }
 
@@ -125,40 +133,39 @@ class FileLoader {
       return
     }
     const now = getTimeSec()
-    let score = -10000
+    let weight = -10000
     let index = 0
 
-    urlConfs.forEach((v, i) => {
-      const s = Network.getUrlScore(v.url, now)
-      if (s > score) {
-        score = s
+    urlConfs.forEach((conf, i) => {
+      const w = Network.getUrlWeight(conf.url, now, this.weightConf)
+      if (w > weight) {
+        weight = w
         index = i
       }
     })
 
-    // swap and pop
+    // 删除 urlConfs[index]
     const conf = urlConfs[index]
     urlConfs[index] = urlConfs[lastIndex]
     urlConfs.length = lastIndex
 
-    return {score, conf}
+    return {weight, conf}
   }
 
   public loadNextUrl(delay = 0) {
     const ret = this.getNextUrl()
     if (!ret) {
       if (this.urlLoaderSet.size === 0) {
-        const url = this.fileConf.name + this.suffix
-        const err = new FileLoaderError('failed to load: ' + url)
+        const err = new FileLoaderError('failed to load: ' + this.getFileConfUrl())
         err.urlErrs = this.urlErrs
         this.onError(err)
       }
       return
     }
-    const {score, conf} = ret
+    const {weight, conf} = ret
 
-    if (score < 0 && delay > 0) {
-      // 同时加载多个备用 URL 时推迟当前站点，避免浪费流量
+    if (weight < 0 && delay > 0) {
+      // 并行加载多个备用 URL 时，推迟低权重的站点（例如当前站点、收费站点）
       this.delayTid = setTimeout(() => {
         this.delayTid = 0
         this.createUrlLoader(conf)
@@ -168,8 +175,16 @@ class FileLoader {
     this.createUrlLoader(conf)
   }
 
+  public getFileConfUrl() {
+    return this.getFinalUrl(this.fileConf.name)
+  }
+
+  private getFinalUrl(url: string) {
+    return url + this.suffix
+  }
+
   private createUrlLoader(urlConf: UrlConf) {
-    const url = urlConf.url + this.suffix
+    const url = this.getFinalUrl(urlConf.url)
     const mods = urlConf.parse(this.manifest)
 
     const urlLoader = new UrlLoader(url, mods)

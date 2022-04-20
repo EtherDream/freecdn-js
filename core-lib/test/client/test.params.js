@@ -154,7 +154,20 @@ describe('params', () => {
   })
 
 
-  describe('referrer-policy', () => {
+  describe('valid_status', () => {
+    it('multi', async () => {
+      const txt = await freecdn.fetchText('/valid-status-multi')
+      expect(txt).eq('211')
+    })
+
+    it('any', async () => {
+      const txt = await freecdn.fetchText('/valid-status-any')
+      expect(txt).eq('220')
+    })
+  })
+
+
+  describe('referrer_policy', () => {
     it('full', async () => {
       const res = await freecdn.fetch('/referrer-full')
       expect(await res.json())
@@ -333,5 +346,29 @@ describe('params', () => {
       const txt = await freecdn.fetchText('/recv-delay')
       expect(txt).include('4')
     }).timeout(1000 * 20)
+  })
+
+
+  describe('pack', () => {
+    it('basic', async () => {
+      const res = await freecdn.fetch('/bundle/assets/css/main.css')
+      const txt = await res.text()
+      expect(txt).eq('body, input { font-family: monospace; }')
+      expect(res.headers.get('content-type')).include('text/css')
+    })
+
+    it('empty', async () => {
+      const res = await freecdn.fetch('/bundle/assets/css/empty.css')
+      const txt = await res.text()
+      expect(txt).eq('')
+      expect(res.headers.get('content-type')).include('text/css')
+    })
+
+    it('last', async () => {
+      const res = await freecdn.fetch('/bundle/')
+      const txt = await res.text()
+      expect(txt).eq('<h1>Hello World</h1>')
+      expect(res.headers.get('content-type')).eq('text/html')
+    })
   })
 })

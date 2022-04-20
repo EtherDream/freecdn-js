@@ -14,7 +14,7 @@ class ParamRecvTimeout extends ParamBase {
   }
 
 
-  private fileLoader: FileLoader
+  private fileLoader!: FileLoader
   private tid = 0
   private sum = 0
 
@@ -59,7 +59,7 @@ class ParamRecvTimeout extends ParamBase {
 
   private stopTimer() {
     if (this.tid > 0) {
-      clearTimeout(this.tid)
+      clearInterval(this.tid)
       this.tid = 0
     }
   }

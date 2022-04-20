@@ -1,19 +1,13 @@
 /**
  * JS Hook Util
- * example: https://codepen.io/etherdream/pen/WNoQQbG?editors=0011
+ * example: https://codepen.io/etherdream/pen/WNoQQbG?editors=0012
  */
 namespace Hook {
-  const {
-    getOwnPropertyDescriptor,
-    defineProperty,
-  } = Object
-
   /**
    * hook function
    */
   export function func<
-    T extends any,
-    K extends keyof T,
+    T, K extends keyof T,
 
     // T[K] must be a function
     F = T[K] extends (...args: infer P) => infer R
@@ -37,8 +31,7 @@ namespace Hook {
    * hook property
    */
   export function prop<
-    T extends any,
-    K extends keyof T,
+    T, K extends keyof T,
 
     GETTER extends (this: T) => T[K],
     SETTER extends (this: T, value: T[K]) => void,
@@ -51,7 +44,7 @@ namespace Hook {
     getterFactory: GETTER_FACTORY | null,
     setterFactory: SETTER_FACTORY | null,
   ) {
-    const desc = getOwnPropertyDescriptor(obj, key)
+    const desc = Object.getOwnPropertyDescriptor(obj, key)
     if (!desc) {
       return false
     }
@@ -61,7 +54,7 @@ namespace Hook {
     if (setterFactory) {
       func(desc, 'set', setterFactory)
     }
-    defineProperty(obj, key, desc)
+    Object.defineProperty(obj, key, desc)
     return true
   }
 }

@@ -10,28 +10,42 @@ describe('basic', () => {
 
   describe('file proxy', () => {
     it('1st to 3rd', async () => {
-      const ret = await freecdn.fetchText('/hello/1')
-      expect(ret).eq('Hello World')
+      const ret = await freecdn.fetchText('/api/get-server-addr')
+      expect(ret).eq('127.0.0.1:10003')
     })
 
     it('1st to 1st', async () => {
-      const ret = await freecdn.fetchText('/hello/2')
+      const ret = await freecdn.fetchText('/hello')
       expect(ret).eq('Hello World')
     })
 
     it('3rd to 1st', async () => {
-      const ret = await freecdn.fetchText('http://127.0.0.1:10003/hello/1')
-      expect(ret).eq('Hello World')
+      const ret = await freecdn.fetchText('http://127.0.0.1:10003/api/get-server-addr')
+      // 当前站点的权重默认最低，因此优先访问第三方资源
+      expect(ret).eq('127.0.0.1:10003')
     })
 
     it('3rd to 3rd', async () => {
-      const ret = await freecdn.fetchText('http://127.0.0.1:10003/hello/2')
+      const ret = await freecdn.fetchText('http://127.0.0.1:10003/assets/hello.txt')
       expect(ret).eq('Hello World')
     })
 
     it('ignore query', async () => {
-      const ret = await freecdn.fetchText('/hello/1?key=val')
+      const res = await freecdn.fetch('/get-file.html')
+      const ret = await res.text()
+
       expect(ret).eq('Hello World')
+      expect(Object.fromEntries(res.headers))
+        .include({'content-type': 'text/html'})
+    })
+
+    it('url with query', async () => {
+      const res = await freecdn.fetch('/get-file.html?key=test.gif')
+      const ret = await res.text()
+
+      expect(ret).eq('hello2')
+      expect(Object.fromEntries(res.headers))
+        .include({'content-type': 'text/plain'})
     })
 
     it('fallback', async () => {
@@ -108,7 +122,7 @@ describe('basic', () => {
 
   describe('range request', () => {
     it('hello world 1-3', async () => {
-      const req = new Request('/hello/1', {
+      const req = new Request('/hello', {
         headers: {
           range: 'bytes=1-3'
         }
@@ -122,7 +136,7 @@ describe('basic', () => {
     })
 
     it('hello world 10-100', async () => {
-      const req = new Request('/hello/1', {
+      const req = new Request('/hello', {
         headers: {
           range: 'bytes=10-100'
         }

@@ -13,25 +13,19 @@ class ParamPos extends ParamBase {
 
 
   private remain: number
-  private done = false
 
 
-  public constructor(begin: number) {
+  public constructor(pos: number) {
     super()
-    this.remain = begin
+    this.remain = pos
   }
 
   public onData(chunk: Uint8Array) {
-    if (this.done) {
+    if (this.remain <= 0) {
       return chunk
     }
     const remain = (this.remain -= chunk.length)
-    if (remain > 0) {
-      return EMPTY_BUF
-    }
-    this.done = true
-
-    if (remain === 0) {
+    if (remain >= 0) {
       return EMPTY_BUF
     }
     // if remain < 0, return last -remain bytes

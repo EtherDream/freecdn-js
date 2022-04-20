@@ -2,10 +2,11 @@ class ParamExpires extends ParamBase {
   public static reuse = true
 
   public static parseConf(conf: string) {
-    const seconds = parseTime(conf) / 1000 | 0
-    if (isNaN(seconds)) {
+    const time = parseTime(conf)
+    if (isNaN(time)) {
       return 'invalid time format'
     }
+    const seconds = time / 1000 | 0
     return [seconds]
   }
 

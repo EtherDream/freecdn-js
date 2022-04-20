@@ -7,27 +7,27 @@ class ParamHash extends ParamBase {
   public static parseConf(conf: string) {
     // conf format:
     // [blksize;]hash1,hash2,...
-    let blkLen = Infinity
+    let blkLen = 1e9
     let hashes = conf
 
     const pos = conf.indexOf(';')
     if (pos > 0) {
-      const blkLenStr = conf.substr(0, pos)
-      hashes = conf.substr(pos + 1)
+      const blkLenStr = conf.substring(0, pos)
+      hashes = conf.substring(pos + 1)
       blkLen = parseByteUnit(blkLenStr)
       if (isNaN(blkLen)) {
         return 'invalid block length'
       }
     }
     const hashBins: Uint8Array[] = []
-    const hashHexs = hashes.split(',')
+    const hashB64s = hashes.split(',')
 
-    for (let i = hashHexs.length - 1; i !== -1; i--) {
-      const bin = base64Decode(hashHexs[i])
+    // 倒序存储，之后 pop 取出
+    for (let i = hashB64s.length - 1; i !== -1; i--) {
+      const bin = base64Decode(hashB64s[i])
       if (!bin || bin.length !== LEN.SHA256_BIN) {
         return 'invalid block hash'
       }
-      // reversed
       hashBins.push(bin)
     }
     return [blkLen, hashBins]
@@ -40,7 +40,7 @@ class ParamHash extends ParamBase {
 
   public constructor(
     private readonly blkLen: number,
-    private readonly hashArr: Uint8Array[]
+    private readonly hashBins: Uint8Array[]
   ) {
     super()
   }
@@ -103,15 +103,16 @@ class ParamHash extends ParamBase {
   }
 
   private async verify(blk: Uint8Array) {
-    const hashExp = this.hashArr.pop()
+    const hashExp = this.hashBins.pop()
     if (!hashExp) {
       throw new ParamError('missing hash')
     }
     const hashGot = await sha256(blk)
+
     if (!isArrayEqual(hashExp, hashGot)) {
       const exp = base64Encode(hashExp)
       const got = base64Encode(hashGot)
-      throw new ParamError('hash incorrect. expected: ' + exp + ', but got: ' + got)
+      throw new ParamError(`hash incorrect. expected: ${exp}, but got: ${got}`)
     }
   }
 }
