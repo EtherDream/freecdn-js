@@ -3,7 +3,7 @@ const ZONE_HOST_SCORE: {
     [host: string]: number
   }
 } = {
-  'zh-CN': {
+  'zh-cn': {
     'ajax.cdnjs.com': 50,
     'cdnjs.cloudflare.com': 50,
     'cdn.jsdelivr.net': 80,
