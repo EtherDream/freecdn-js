@@ -3,12 +3,7 @@ namespace Network {
     NOT_FOUND_MAX_AGE = 300,
   }
 
-  let mHostScoreMap: {[host: string]: number}
-  let mDatabase: Database
-
-  let mLastRecordNum = 0
-  let mPreservePerformanceEntries = false
-
+  const mDatabase = new Database('.freecdn')
 
   interface UrlInfo {
     url: string,
@@ -53,7 +48,7 @@ namespace Network {
     return info
   }
 
-  function getHostScore(hostInfo: HostInfo, now: number) {
+  function getHostWeight(hostInfo: HostInfo, now: number) {
     // TODO: ...
     if (hostInfo.reqTimeAvg !== -1) {
       const delayScore = 100 - hostInfo.reqTimeAvg * 0.2
@@ -62,30 +57,27 @@ namespace Network {
     return 50
   }
 
-  export function getUrlScore(url: string, now: number) {
+  export function getUrlWeight(url: string, now: number, hostWeightMap: Map<string, number>) {
     const urlInfo = mUrlInfoMap.get(url)
     if (urlInfo && urlInfo.expire < now) {
       if (urlInfo.status !== 200) {
         return -2
       }
+      // 该 URL 之前加载过
+      // expire 值越大，已过期的概率越小，权重越高
       return 100 + urlInfo.expire
     }
 
-    // current site
+    // 当前站点默认权重 -1，低于免费站点，减少流量成本
     if (url[0] === '/') {
-      return -1
+      return hostWeightMap.get(MY_HOST) ?? -1
     }
     const host = getHostFromUrl(url)
     const hostInfo = mHostInfoMap.get(host)
     if (!hostInfo) {
-      return mHostScoreMap[host] || 50
+      return hostWeightMap.get(host) ?? 50
     }
-    const hostScore = getHostScore(hostInfo, now)
-    return hostScore
-  }
-
-  export function preservePerformanceEntries(v: boolean) {
-    mPreservePerformanceEntries = v
+    return getHostWeight(hostInfo, now)
   }
 
   export async function fetch(req: Request) {
@@ -140,11 +132,10 @@ namespace Network {
   function parseMaxAge(headers: Headers, t0: number) {
     const cacheControl = headers.get('cache-control')
     if (cacheControl !== null) {
-      // not strict
       if (cacheControl.includes('no-cache')) {
         return 0
       }
-      const m = cacheControl.match(/(?:^|,\s*)max-age="?(\d+)"?/)
+      const m = cacheControl.match(/max-age="?(\d+)"?/)
       if (m) {
         return +m[1]
       }
@@ -160,23 +151,10 @@ namespace Network {
   }
 
 
-  function statistic() {
-    const records = performance.getEntriesByType('resource')
-    const currNum = records.length
-    if (currNum === 0) {
-      return
-    }
-    let begin = 0
-    if (mPreservePerformanceEntries) {
-      if (currNum === mLastRecordNum) {
-        return
-      }
-      begin = mLastRecordNum
-    }
+  function parseEntries(list: PerformanceEntryList) {
     const timeBase = performance.timeOrigin
 
-    for (let i = begin; i < currNum; i++) {
-      const record = records[i] as PerformanceResourceTiming
+    for (const record of list as PerformanceResourceTiming[]) {
       const host = getHostFromUrl(record.name)
       const info = getHostInfo(host)
 
@@ -188,25 +166,12 @@ namespace Network {
         const reqTime = record.responseStart - record.requestStart
         info.reqTimeSum += reqTime
         info.reqTimeAvg = info.reqTimeSum / info.reqNum
-
-        const readTime = record.responseEnd - record.responseStart
-        const speed = record.encodedBodySize / readTime
       }
-      // info.protocol = record.nextHopProtocol
-    }
-
-    if (mPreservePerformanceEntries) {
-      mLastRecordNum = currNum
-    } else {
-      performance.clearResourceTimings()
     }
   }
 
 
   export async function init() {
-    mHostScoreMap = ZONE_HOST_SCORE[navigator.language] || ZONE_HOST_SCORE['*']
-
-    mDatabase = new Database('.freecdn')
     await mDatabase.open({
       'cache': {
         keyPath: 'url'
@@ -215,6 +180,7 @@ namespace Network {
 
     const now = getTimeSec()
 
+    // 读取 URL 历史信息
     await mDatabase.enum('cache', (item: UrlInfo) => {
       if (item.expire < now) {
         mDatabase.delete('cache', item.url)
@@ -223,12 +189,41 @@ namespace Network {
       mUrlInfoMap.set(item.url, item)
     })
 
-    performance.onresourcetimingbufferfull = (e) => {
-      if (!mPreservePerformanceEntries) {
-        statistic()
-      }
+    // 跟踪每个 URL 的性能指标
+    const entries = performance.getEntriesByType('resource')
+    parseEntries(entries)
+
+    const observer = new PerformanceObserver(entryList => {
+      const entries = entryList.getEntries()
+      parseEntries(entries)
+    })
+    observer.observe({
+      entryTypes: ['resource']
+    })
+  }
+
+
+  export function parseWeightConf(manifest: Manifest) {
+    const zone = navigator.language.toLowerCase()
+    const zone0 = zone.split('-')[0]
+    const weightParams =
+      manifest.getParams('@weight ' + zone) ||
+      manifest.getParams('@weight ' + zone0) ||
+      manifest.getParams('@weight')
+
+    if (!weightParams) {
+      const obj = ZONE_HOST_SCORE[zone] || ZONE_HOST_SCORE['*']
+      return new Map(Object.entries(obj))
     }
-    statistic()
-    setInterval(statistic, 2000)
+
+    const map = new Map<string, number>()
+    for (const [k, v] of weightParams) {
+      const num = +v
+      if (isNaN(num)) {
+        continue
+      }
+      map.set(k, num)
+    }
+    return map
   }
 }

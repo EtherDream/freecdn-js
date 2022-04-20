@@ -2,8 +2,10 @@ class UrlConf {
   private static nameClassMap: {[name: string] : ParamSub}
 
   public static init() {
+    // 为了让代码更简洁，这里没有逐一引用各个参数对应的文件
+    // 如果该列表定义在全局，会出现依赖顺序的问题
     this.nameClassMap = {
-      // priority: high to low
+      // 参数优先级（越前面的参数优先执行）
       'open_timeout': ParamOpenTimeout,
       'recv_timeout': ParamRecvTimeout,
       'referrer_policy': ParamReferrerPolicy,
@@ -33,10 +35,10 @@ class UrlConf {
     ParamMime.init()
   }
 
-  /** relative or absolute url without fragment */
+  // 不带片段部分的 URL（可以是相对路径）
   public readonly url: string
 
-  /** url fragment */
+  // URL 片段部分
   public readonly frag: string | undefined
 
 
@@ -51,17 +53,20 @@ class UrlConf {
     // TODO: cache result
     const params = new Map<string, string>()
 
-    // global < host < file < frag
+    // 参数优先级: 全局参数 < 站点参数 < 文件参数 < URL 参数
     mergeMap(params, manifest.globalParams)
 
+    // 站点参数
     const host = this.url[0] === '/' ? MY_HOST : getHostFromUrl(this.url)
     const hostParams = manifest.getParams('@host ' + host)
     if (hostParams) {
       mergeMap(params, hostParams)
     }
 
+    // 文件参数
     mergeMap(params, this.fileParams)
 
+    // URL 参数（定义在 # 后面）
     if (this.frag) {
       const urlParams = new URLSearchParams(this.frag)
       mergeMap(params, urlParams)

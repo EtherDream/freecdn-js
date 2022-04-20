@@ -10,34 +10,29 @@
 
 
 class FreeCDN {
-  private static globalInited: boolean | PromiseX
-
-  private static async globalInit() {
-    if (this.globalInited) {
-      return this.globalInited
-    }
-    this.globalInited = promisex()
-
-    await CacheManager.init()
-    await Network.init()
-    UrlConf.init()
-
-    this.globalInited.resolve()
-    this.globalInited = true
-  }
-
-
   public enableCacheStorage = true
   public manifest: Manifest | undefined
 
   private readonly updater: Updater | undefined
+  private weightConf = new Map<string, number>()
   private inited = false
 
 
   public constructor(manifestUrl?: string) {
-    if (manifestUrl) {
-      this.updater = new Updater(this, manifestUrl)
+    if (!manifestUrl) {
+      return
     }
+    const updater = new Updater(manifestUrl, manifest => {
+      this.manifest = manifest
+
+      const updateConf = manifest.getParams('@update') || EMPTY_PARAMS
+      updater.applyConfs(updateConf)
+
+      // 权重参数
+      this.weightConf = Network.parseWeightConf(manifest)
+    })
+
+    this.updater = updater
   }
 
   public async fetch(input: RequestInfo, init?: RequestInit) {
@@ -53,28 +48,86 @@ class FreeCDN {
     if (!manifest) {
       return Network.fetch(req)
     }
-    const dest = this.tryFile(manifest, req)
-    if (!dest) {
-      return Network.fetch(req)
-    }
-    if (dest instanceof Response) {
-      return dest
-    }
 
-    let fileName: string
+    let fileConf: FileConf | undefined
     let suffix = ''
 
-    if (dest instanceof Array) {
-      [fileName, suffix] = dest
-    } else {
-      fileName = dest
+    for (;;) {
+      const urlObj = new URL(req.url)
+
+      // 同站点的 URL 使用相对路径。和清单的 Map 保持一致
+      const prefix = urlObj.host === MY_HOST ? '' : urlObj.origin
+
+      // 带参数的 URL 尝试完整匹配
+      if (urlObj.search) {
+        fileConf = manifest.get(prefix + urlObj.pathname + urlObj.search)
+        if (fileConf) {
+          break
+        }
+      }
+
+      // 合并路径中连续的 `/`
+      const path = urlObj.pathname.replace(/\/{2,}/g, '/')
+      const file = prefix + path
+
+      // 优先使用 avif、webp 版本
+      if (REG_IMG_EXTS.test(file) && req.mode !== 'cors' && !req.integrity) {
+        const accept = req.headers.get('accept') || ''
+        if (accept.includes('image/avif')) {
+          fileConf = manifest.get(file + '.avif')
+          if (fileConf) {
+            break
+          }
+        }
+        if (accept.includes('image/webp')) {
+          fileConf = manifest.get(file + '.webp')
+          if (fileConf) {
+            break
+          }
+        }
+      }
+
+      fileConf = manifest.get(file)
+      if (fileConf) {
+        break
+      }
+      if (file.endsWith('/')) {
+        fileConf = manifest.get(file + 'index.html')
+        if (fileConf) {
+          break
+        }
+      }
+      // 重定向到 `/` 结尾的路径
+      if (manifest.has(file + '/index.html')) {
+        return Response.redirect(file + '/')
+      }
+
+      // 目录匹配
+      // 尾部保存到 suffix 变量。例如访问 /path/to/file?a=1
+      // 清单若存在 /path/ 文件，suffix 则为 `to/file?a=1`
+
+      // 删除末尾的文件名。保持 `/` 结尾
+      let dir = path.replace(/[^/]*$/, '')
+
+      for (;;) {
+        fileConf = manifest.get(prefix + dir)
+        if (fileConf) {
+          suffix = path.substring(dir.length) + urlObj.search
+        }
+        if (dir === '/') {
+          break
+        }
+        // 删除末尾的目录名。保持 `/` 结尾
+        dir = dir.replace(/[^/]+\/$/, '')
+      }
+
+      // 清单中无匹配，直接转发
+      return Network.fetch(req)
     }
 
-    const fileConf = manifest.get(fileName) as FileConf
     fileConf.parse()
 
     let fileHash = ''
-
     const hashParam = fileConf.params.get('hash')
     if (hashParam && hashParam.length === LEN.SHA256_B64) {
       fileHash = hashParam
@@ -88,16 +141,17 @@ class FreeCDN {
       }
     }
 
-    const fileLoader = new FileLoader(fileConf, req, manifest, suffix)
+    const fileLoader = new FileLoader(fileConf, req, manifest, this.weightConf, suffix)
     const promise = promisex<Response>()
 
-    // 1-hash file, no stream
+    // 如果文件只有一个 hash 则不用流模式（必须完整下载才能校验 hash）
     if (fileHash) {
       fileLoader.onOpen = (args) => {
         fileLoader.onData = (body) => {
           const res = new Response(body, args)
           if (cacheable && body.length < 1024 * 1024 * 5) {
             const cacheRes = res.clone()
+            // 字段可在控制台列表中显示，方便调试
             cacheRes.headers.set('content-length', body.length + '')
             cacheRes.headers.set('x-raw-url', req.url)
             CacheManager.addHash(fileHash, cacheRes)
@@ -115,7 +169,7 @@ class FreeCDN {
       return promise
     }
 
-    // multi-hash or no-hash
+    // 如果文件有多个 hash 或没有 hash，可使用流模式
     let controller: ReadableStreamDefaultController
     let paused = false
 
@@ -202,65 +256,14 @@ class FreeCDN {
     await KeyManager.set(keyB64)
   }
 
-  public set preservePerformanceEntries(status: boolean) {
-    Network.preservePerformanceEntries(status)
-  }
-
   public async init() {
     console.assert(!this.inited)
     this.inited = true
 
-    await FreeCDN.globalInit()
+    await globalInit()
 
     if (this.updater) {
       await this.updater.init()
-    }
-  }
-
-  private tryFile(manifest: Manifest, req: Request) {
-    const url = new URL(req.url)
-    const origin = url.host === MY_HOST ? '' : url.origin
-
-    // merge slashes
-    const path = url.pathname.replace(/\/{2,}/g, '/')
-    const file = origin + path
-
-    // image upgrade
-    if (REG_IMG_EXTS.test(file) && req.mode !== 'cors' && !req.integrity) {
-      const accept = req.headers.get('accept') || ''
-      if (accept.includes('image/avif')) {
-        if (manifest.has(file + '.avif')) {
-          return file + '.avif'
-        }
-      }
-      if (accept.includes('image/webp')) {
-        if (manifest.has(file + '.webp')) {
-          return file + '.webp'
-        }
-      }
-    }
-
-    if (manifest.has(file)) {
-      return file
-    }
-    if (file.endsWith('/') && manifest.has(file + 'index.html')) {
-      return file + 'index.html'
-    }
-    if (manifest.has(file + '/index.html')) {
-      return Response.redirect(file + '/')
-    }
-
-    // directory match
-    let dir = path.replace(/[^/]*$/, '')
-    for (;;) {
-      if (manifest.has(origin + dir)) {
-        const suffix = path.substr(dir.length) + url.search
-        return [origin + dir, suffix]
-      }
-      if (dir === '/') {
-        break
-      }
-      dir = dir.replace(/[^/]+\/$/, '')
     }
   }
 }

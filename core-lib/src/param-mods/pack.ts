@@ -92,11 +92,11 @@ class ParamPack extends ParamBase {
       if (pos === -1) {
         this.fatal('missing len')
       }
-      const len = +line.substr(pos + 1)
+      const len = +line.substring(pos + 1)
       if (!(len >= 0)) {
         this.fatal('bad len')
       }
-      const path = line.substr(0, pos)
+      const path = line.substring(0, pos)
       fileInfoMap.set(path, [offset, len])
       offset += len
     }

@@ -59,7 +59,7 @@ class ParamRecvTimeout extends ParamBase {
 
   private stopTimer() {
     if (this.tid > 0) {
-      clearTimeout(this.tid)
+      clearInterval(this.tid)
       this.tid = 0
     }
   }

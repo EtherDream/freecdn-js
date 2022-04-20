@@ -8,6 +8,7 @@ const DEFAULT_PARAMS = `
  expires=30s
  mime=auto
  open_timeout=10s
+ valid_status=200
 `
 const DEFAULT_MANIFEST_PATH = '/freecdn-manifest.txt'
 const INTERNAL_PATH = 'freecdn-internal/' + (IS_DEBUG ? 'dev' : VER)
@@ -26,3 +27,20 @@ const EMPTY_BUF = new Uint8Array(0)
 
 const MY_HOST = location.host
 const CRYPTO = crypto.subtle
+
+
+let gInited: boolean | PromiseX
+
+async function globalInit() {
+  if (gInited) {
+    return gInited
+  }
+  gInited = promisex()
+
+  await CacheManager.init()
+  await Network.init()
+  UrlConf.init()
+
+  gInited.resolve()
+  gInited = true
+}

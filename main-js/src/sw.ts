@@ -123,7 +123,6 @@ namespace Sw {
 
     if (isSharedMode) {
       mFreeCDN.enableCacheStorage = false
-      mFreeCDN.preservePerformanceEntries = true
       mIniting = promisex()
 
       // install hook as early as possible,

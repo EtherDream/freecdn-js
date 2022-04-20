@@ -7,8 +7,7 @@ namespace Hook {
    * hook function
    */
   export function func<
-    T extends any,
-    K extends keyof T,
+    T, K extends keyof T,
 
     // T[K] must be a function
     F = T[K] extends (...args: infer P) => infer R
@@ -32,8 +31,7 @@ namespace Hook {
    * hook property
    */
   export function prop<
-    T extends any,
-    K extends keyof T,
+    T, K extends keyof T,
 
     GETTER extends (this: T) => T[K],
     SETTER extends (this: T, value: T[K]) => void,

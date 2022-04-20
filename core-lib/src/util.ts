@@ -133,8 +133,8 @@ function getPair(str: string, delim: string) : [string, string?] {
     return [str]
   }
   return [
-    str.substr(0, pos),
-    str.substr(pos + delim.length)
+    str.substring(0, pos),
+    str.substring(pos + delim.length)
   ]
 }
 
@@ -152,7 +152,7 @@ function stripUrlQuery(url: string) : string {
   if (pos === -1) {
     return url
   }
-  return url.substr(0, pos)
+  return url.substring(0, pos)
 }
 
 /**
@@ -172,7 +172,7 @@ const MY_ORIGIN_LEN = location.origin.length
  */
 function toRelUrl(url: string) : string {
   if (url.startsWith(ROOT_PATH)) {
-    return url.substr(MY_ORIGIN_LEN)
+    return url.substring(MY_ORIGIN_LEN)
   }
   return url
 }
