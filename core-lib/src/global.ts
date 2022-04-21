@@ -11,7 +11,8 @@ const DEFAULT_PARAMS = `
  valid_status=200
 `
 const DEFAULT_MANIFEST_PATH = '/freecdn-manifest.txt'
-const INTERNAL_PATH = 'freecdn-internal/' + (IS_DEBUG ? 'dev' : VER)
+const INTERNAL_DIR = 'freecdn-internal/' + (IS_DEBUG ? 'dev' : VER)
+const INTERNAL_PATH = new URL(INTERNAL_DIR, location.href).pathname
 const REG_IMG_EXTS = /\.(?:jpg|jpeg|png|apng|gif|ico|bmp)$/i
 
 const enum LEN {

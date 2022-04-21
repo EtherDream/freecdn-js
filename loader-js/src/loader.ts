@@ -30,8 +30,8 @@ declare let Q: any[]
     flag = 1
 
     const FAIL_JS = IS_DEBUG
-      ? '/freecdn-internal/dev/fail.js'
-      : '/freecdn-internal/' + VER + '/fail.min.js'
+      ? 'freecdn-internal/dev/fail.js'
+      : 'freecdn-internal/' + VER + '/fail.min.js'
 
     const s = document.createElement('script')
     s['e'] = err
