@@ -16,6 +16,12 @@
     mocha.setup('bdd')
     mocha.checkLeaks()
   </script>
+  <script>
+    function base64Encode(bytes) {
+      const asc = bytes.reduce((s, v) => s + String.fromCharCode(v), '')
+      return btoa(asc)
+    }
+  </script>
   <script src="test.weight.js"></script>
   <script src="test.basic.js"></script>
   <script src="test.config.js"></script>
