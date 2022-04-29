@@ -12,7 +12,7 @@ class ParamPack extends ParamBase {
     return 'invalid value'
   }
 
-  private static cache = new Map<string, {
+  private static urlCacheMap = new Map<string, {
     headerLen: number,
     fileInfoMap: Map<string, PackFileInfo>,
   }>()
@@ -32,26 +32,24 @@ class ParamPack extends ParamBase {
 
   public onResponse(resArgs: ResponseArgs, fileLoader: FileLoader, rawRes: Response) {
     let file = fileLoader.suffix
-    if (file === null) {
-      this.fatal('missing url suffix')
-    }
+
     if (file === '' || file.endsWith('/')) {
       file += 'index.html'
       fileLoader.suffix = file
     }
 
-    const packMap = ParamPack.cache.get(rawRes.url)
-    if (packMap) {
-      const info = packMap.fileInfoMap.get(file)
+    const cache = ParamPack.urlCacheMap.get(fileLoader.rawReq.url)
+    if (cache) {
+      const info = cache.fileInfoMap.get(file)
       if (!info) {
         this.fatal('missing file')
       }
       const [offset, len] = info
-      this.offset = offset + packMap.headerLen
+      this.offset = offset + cache.headerLen
       this.len = len
       this.headerParsed = true
     } else {
-      this.url = rawRes.url
+      this.url = fileLoader.rawReq.url
       this.file = file
     }
   }
@@ -68,7 +66,7 @@ class ParamPack extends ParamBase {
   }
 
   private parseHeader(chunk: Uint8Array) {
-    const end = chunk.indexOf(13)   // '\r'
+    const end = chunk.indexOf(13 /* '\r */)
     if (end === -1) {
       this.queuePush(chunk)
       return EMPTY_BUF
@@ -94,14 +92,14 @@ class ParamPack extends ParamBase {
       }
       const len = +line.substring(pos + 1)
       if (!(len >= 0)) {
-        this.fatal('bad len')
+        this.fatal('invalid len')
       }
       const path = line.substring(0, pos)
       fileInfoMap.set(path, [offset, len])
       offset += len
     }
 
-    ParamPack.cache.set(this.url, {
+    ParamPack.urlCacheMap.set(this.url, {
       headerLen: headerBin.length + 1,
       fileInfoMap,
     })
