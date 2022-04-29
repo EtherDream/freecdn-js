@@ -11,13 +11,10 @@ class ParamReqHeaders extends ParamBase {
       return 'invalid format'
     }
     for (const [k, v] of Object.entries(map)) {
-      if (typeof v !== 'string') {
-        return 'invalid header'
-      }
       if (k === '*') {
         preserveAll = true
       } else {
-        headers.push([k, v])
+        headers.push([k, v + ''])
       }
     }
     return [headers, preserveAll]
