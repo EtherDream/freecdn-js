@@ -83,7 +83,7 @@ function parseByteUnit(str: string) : number {
     return NaN
   }
   const [, num, kMG, i, bB] = m
-  const power =
+  const exponent =
     kMG === 'k' ? 1 :
     kMG === 'K' ? 1 :
     kMG === 'M' ? 2 :
@@ -91,7 +91,7 @@ function parseByteUnit(str: string) : number {
 
   const base = i ? 1024 : 1000
   const unit = bB === 'b' ? 8 : 1
-  return +num * base ** power / unit
+  return +num * base ** exponent / unit
 }
 
 function getTimeSec() : number {

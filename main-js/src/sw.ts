@@ -3,15 +3,13 @@
 ///<reference path="hook.ts"/>
 
 
-declare const FREECDN_SHARED_MODE: boolean
-declare const FREECDN_PUBLIC_KEY: string
 declare const Q: any[]
 
 
 namespace Sw {
   const GLOBAL: ServiceWorkerGlobalScope = self as any
 
-  const mPageJsRes = new Response('/* freecdn is installed */', {
+  const mLoaderJsRes = new Response('/* freecdn is installed */', {
     headers: {
       'content-type': 'text/javascript',
       'cache-control': 'max-age=3600',
@@ -23,9 +21,8 @@ namespace Sw {
   let mIniting: PromiseX | null
   let mResUrlMap: WeakMap<Response, string>
 
-  /**
-   * imported by custom service worker
-   */
+
+  // 共享模式（脚本通过业务方的 SW 引入）
   function sharedModeInit() {
     Hook.func(GLOBAL, 'fetch', oldFn => sharedModeHandler)
 
@@ -41,6 +38,7 @@ namespace Sw {
 
     mResUrlMap = new WeakMap()
 
+    // 由于自定义的 Response 对象 url 为空，因此通过 hook 的方式保留原始 url
     Hook.prop(Response.prototype, 'url',
       getter => function() {
         return mResUrlMap.get(this) || getter.call(this)
@@ -60,6 +58,7 @@ namespace Sw {
 
   async function sharedModeHandler(input: RequestInfo, init?: RequestInit) {
     if (mIniting) {
+      // freecdn 仍在初始化中（例如加载清单文件）
       await mIniting
     }
     const req = (input instanceof Request && !init)
@@ -71,18 +70,15 @@ namespace Sw {
     return res
   }
 
-  /**
-   * imported by loader-js
-   */
+  // 独占模式（通过 freecdn-loader.min.js 引入）
   function loaderModeInit() {
     type tuple = Parameters<typeof loaderModeHandler>
-    const queue: any[] = Q
 
-    // hook Q.push()
-    queue.push = loaderModeHandler as any
+    // 重写 Q.push，这样 loader-js 可直接传递 event 和 promise
+    Q.push = loaderModeHandler as any
 
-    while (queue.length) {
-      const args = queue.splice(0, 3) as tuple
+    while (Q.length) {
+      const args = Q.splice(0, 3) as tuple
       loaderModeHandler(...args)
     }
   }
@@ -108,7 +104,7 @@ namespace Sw {
     }
 
     if (req.url === location.href) {
-      resolve(mPageJsRes.clone())
+      resolve(mLoaderJsRes.clone())
       return
     }
 
@@ -118,17 +114,17 @@ namespace Sw {
   async function main() {
     mFreeCDN = new FreeCDN('freecdn-manifest.txt')
 
-    const isSharedMode: boolean = typeof FREECDN_SHARED_MODE !== 'undefined'
-    let publicKey: string
+    const isSharedMode = !!(GLOBAL as any).FREECDN_SHARED_MODE
+
+    let publicKey: string | undefined
 
     if (isSharedMode) {
       mFreeCDN.enableCacheStorage = false
       mIniting = promisex()
 
-      // install hook as early as possible,
-      // don't use await before this
+      // 在此之前不要使用 await，否则安装 hook 会被推迟，导致初始化时无法触发 hook
       sharedModeInit()
-      publicKey = FREECDN_PUBLIC_KEY
+      publicKey = (GLOBAL as any).FREECDN_PUBLIC_KEY
     } else {
       publicKey = Q.shift()
     }
