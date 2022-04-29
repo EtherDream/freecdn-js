@@ -52,7 +52,7 @@ class FreeCDN {
     let fileConf: FileConf | undefined
     let suffix = ''
 
-    for (;;) {
+    FIND: for (;;) {
       const urlObj = new URL(req.url)
 
       // 同站点的 URL 使用相对路径。和清单的 Map 保持一致
@@ -113,6 +113,7 @@ class FreeCDN {
         fileConf = manifest.get(prefix + dir)
         if (fileConf) {
           suffix = path.substring(dir.length) + urlObj.search
+          break FIND
         }
         if (dir === '/') {
           break
@@ -133,7 +134,9 @@ class FreeCDN {
       fileHash = hashParam
     }
 
-    const cacheable = this.enableCacheStorage && fileHash
+    const range = req.headers.get('range')
+
+    const cacheable = this.enableCacheStorage && fileHash && !range
     if (cacheable) {
       const res = await CacheManager.findHash(fileHash)
       if (res) {
@@ -141,7 +144,7 @@ class FreeCDN {
       }
     }
 
-    const fileLoader = new FileLoader(fileConf, req, manifest, this.weightConf, suffix)
+    const fileLoader = new FileLoader(fileConf, req, manifest, this.weightConf, range, suffix)
     const promise = promisex<Response>()
 
     // 如果文件只有一个 hash 则不用流模式（必须完整下载才能校验 hash）
