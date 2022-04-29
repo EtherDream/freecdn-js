@@ -14,7 +14,7 @@ describe('config', () => {
     expect(Object.fromEntries(res.headers))
       .include({
         'content-type': 'text/inline',
-        'cache-control': 'max-age=10',
+        'a': '3',
       })
   })
 
@@ -24,7 +24,7 @@ describe('config', () => {
     expect(Object.fromEntries(res.headers))
       .include({
         'content-type': 'text/host',
-        'cache-control': 'max-age=20',
+        'a': '2',
       })
   })
 
@@ -34,7 +34,7 @@ describe('config', () => {
     expect(Object.fromEntries(res.headers))
       .include({
         'content-type': 'text/global',
-        'cache-control': 'max-age=60',
+        'a': '1',
       })
   })
 

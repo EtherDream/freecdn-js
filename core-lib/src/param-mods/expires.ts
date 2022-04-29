@@ -17,7 +17,11 @@ class ParamExpires extends ParamBase {
     super()
   }
 
-  public onResponse(resArgs: ResponseArgs) {
-    resArgs.headers.append('cache-control', 'max-age=' + this.seconds)
+  public onResponse(resArgs: ResponseArgs, fileLoader: FileLoader, rawRes: Response) {
+    // 过期时间不小于实际值，防止经常变化的资源无法及时更新
+    const rawMaxAge = (rawRes as any)._maxage
+    const maxAge = rawMaxAge < this.seconds ? rawMaxAge : this.seconds
+
+    resArgs.headers.append('cache-control', 'max-age=' + maxAge)
   }
 }

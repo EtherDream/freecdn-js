@@ -1,6 +1,6 @@
 namespace Network {
   const enum Conf {
-    NOT_FOUND_MAX_AGE = 300,
+    DEFAULT_MAX_AGE = 300,
   }
 
   const mDatabase = new Database('.freecdn')
@@ -97,19 +97,24 @@ namespace Network {
       hostInfo.pending--
     }
 
+    const maxAge = parseMaxAge(res.headers, t0)
+
     switch (res.status) {
     case 200:
       if (req.cache !== 'no-store') {
-        const sec = parseMaxAge(res.headers, t0)
-        if (sec > 60) {
-          addUrlInfo(res.url, 200, t0 + sec)
+        if (maxAge > 60) {
+          addUrlInfo(res.url, 200, t0 + maxAge)
         }
       }
       break
     case 404:
-      addUrlInfo(res.url, 404, t0 + Conf.NOT_FOUND_MAX_AGE)
+      addUrlInfo(res.url, 404, t0 + maxAge)
       break
     }
+
+    // 过期时间会在 expires 参数中会用到，避免重复分析
+    (res as any)._maxage = maxAge
+
     return res
   }
 
@@ -147,7 +152,7 @@ namespace Network {
         return (t1 - t0) | 0
       }
     }
-    return -1
+    return Conf.DEFAULT_MAX_AGE
   }
 
 

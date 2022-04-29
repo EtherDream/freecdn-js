@@ -53,6 +53,14 @@ describe('params', () => {
       expect(Object.fromEntries(res.headers))
         .include({'cache-control': 'max-age=90'})
     })
+
+    // 过期时间小于实际值，应使用实际值
+    it('cache 10s', async () => {
+      const req = new Request('/expires-10s')
+      const res = await freecdn.fetch(req)
+      expect(Object.fromEntries(res.headers))
+        .include({'cache-control': 'max-age=10'})
+    })
   })
 
 
