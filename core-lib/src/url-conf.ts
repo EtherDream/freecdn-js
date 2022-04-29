@@ -6,6 +6,8 @@ class UrlConf {
     // 如果该列表定义在全局，会出现依赖顺序的问题
     this.nameClassMap = {
       // 参数优先级（越前面的参数优先执行）
+      'data': ParamData,
+
       'open_timeout': ParamOpenTimeout,
       'recv_timeout': ParamRecvTimeout,
       'referrer_policy': ParamReferrerPolicy,

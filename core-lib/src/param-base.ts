@@ -15,7 +15,7 @@ class ParamError extends Error {
 }
 
 abstract class ParamBase {
-  public onRequest(reqArgs: RequestArgs, fileLoader: FileLoader) : void {
+  public onRequest(reqArgs: RequestArgs, fileLoader: FileLoader) : void | Response {
   }
 
   public onResponse(resArgs: ResponseArgs, fileLoader: FileLoader, rawRes: Response) : void {

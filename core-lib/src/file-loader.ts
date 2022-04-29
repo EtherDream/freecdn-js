@@ -41,9 +41,9 @@ class FileLoader {
     public readonly rawReq: Request,
     public readonly manifest: Manifest,
     public readonly weightConf: Map<string, number>,
+    public range: string | null,
     public suffix: string
   ) {
-    const range = rawReq.headers.get('range')
     if (range) {
       const r = this.parseReqRange(range)
       if (r) {
@@ -59,13 +59,22 @@ class FileLoader {
     }
 
     // 原始 URL 作为后备资源
-    // 但不能对内容进行修改，例如 pos、xor 等操作，因此只保留白名单中的参数
-    const backupParams = new Map<string, string>()
-    for (const k of FILE_BACKUP_PARAMS) {
-      const v = fileConf.params.get(k)
-      if (v !== undefined) {
-        backupParams.set(k, v)
+    let backupParams: params_t
+
+    if (fileConf.params.has('data')) {
+      // 使用内嵌数据时，可保留所有参数
+      backupParams = fileConf.params
+    } else {
+      // 使用原始 URL 时禁止修改内容，例如 pos、xor 等操作
+      // 因此只保留白名单中的参数
+      const map = new Map<string, string>()
+      for (const k of FILE_BACKUP_PARAMS) {
+        const v = fileConf.params.get(k)
+        if (v !== undefined) {
+          map.set(k, v)
+        }
       }
+      backupParams = map
     }
     const backupUrlConf = new UrlConf(fileConf.name, backupParams)
 
@@ -176,15 +185,18 @@ class FileLoader {
   }
 
   public getFileConfUrl() {
-    return this.getFinalUrl(this.fileConf.name)
+    return this.fileConf.name + this.suffix
   }
 
-  private getFinalUrl(url: string) {
-    return url + this.suffix
+  private getBackupUrl(url: string) {
+    if (url.endsWith('/')) {
+      return url + this.suffix
+    }
+    return url
   }
 
   private createUrlLoader(urlConf: UrlConf) {
-    const url = this.getFinalUrl(urlConf.url)
+    const url = this.getBackupUrl(urlConf.url)
     const mods = urlConf.parse(this.manifest)
 
     const urlLoader = new UrlLoader(url, mods)

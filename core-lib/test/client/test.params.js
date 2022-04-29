@@ -288,6 +288,25 @@ describe('params', () => {
   })
 
 
+  describe('data', () => {
+    it('str', async () => {
+      const txt = await freecdn.fetchText('/data-str.js')
+      expect(txt).eq('console.log("1")')
+    })
+
+    it('bin', async () => {
+      const bin = await freecdn.fetchBin('/data-bin.gif')
+      const b64 = base64Encode(bin)
+      expect(b64).eq('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRA==')
+    })
+
+    it('mix', async () => {
+      const txt = await freecdn.fetchText('/data-mix.html')
+      expect(txt).eq('<h1>hello</h1>')
+    })
+  })
+
+
   describe('xor', () => {
     it('basic', async () => {
       const txt = await freecdn.fetchText('/hello-xor')

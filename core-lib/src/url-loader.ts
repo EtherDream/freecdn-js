@@ -55,19 +55,26 @@ class UrlLoader {
       reqArgs.body = await rawReq.clone().arrayBuffer()
     }
 
+    let res: Response | void
+
     for (const mod of this.paramMods) {
-      mod.onRequest(reqArgs, fileLoader)
+      // 可直接返回响应（例如 data 参数、pack 参数存在缓存的时候）
+      res = mod.onRequest(reqArgs, fileLoader)
+      if (res) {
+        break
+      }
     }
 
-    reqArgs.signal = this.abortCtrl.signal
+    if (!res) {
+      reqArgs.signal = this.abortCtrl.signal
 
-    const req = new Request(this.url, reqArgs)
-    let res: Response
-    try {
-      res = await Network.fetch(req)
-    } catch (err) {
-      this.isNetErr = true
-      return err
+      const req = new Request(this.url, reqArgs)
+      try {
+        res = await Network.fetch(req)
+      } catch (err) {
+        this.isNetErr = true
+        return err
+      }
     }
 
     const resArgs: ResponseArgs = {
@@ -88,9 +95,8 @@ class UrlLoader {
 
     READ: for (;;) {
       try {
-        const {done, value} = await reader.read()
+        const {value} = await reader.read()
         if (!value) {
-          console.assert(done)
           break
         }
         buf = value
