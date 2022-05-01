@@ -46,15 +46,15 @@ declare let Q: any[]
     if (flag) {
       return
     }
-    fetch(url, {integrity: MAIN_JS_HASH}).then(res => {
-      res.text().then(txt => {
+    fetch(url, {integrity: MAIN_JS_HASH})
+      .then(res => res.text())
+      .then(txt => {
         if (flag) {
           return
         }
         flag = 1
         globalEval(txt)
-      })
-    })
+      }, () => {} /* catch */)
   }
 
   if (self.document) {
