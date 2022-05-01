@@ -110,7 +110,7 @@ gulp.task('compile-loader-js', () => {
   return gulp
     .src(LOADER_JS_SRC)
     .pipe(ts(opt))
-    .pipe(replace(/'PUBLIC_KEY_PLACEHOLDER'|'[A-Za-z0-9/+]{86}'/, `'${key}'`))
+    .pipe(replace(/PUBLIC_KEY_PLACEHOLDER|[A-Za-z0-9/+]{86}/, `'${key}'`))
     .pipe(gulp.dest('dist'))
 })
 

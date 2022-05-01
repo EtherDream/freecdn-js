@@ -8,6 +8,10 @@ declare const RELEASE: never
 declare const MAIN_JS_HASH: string
 declare const VER: string
 
+declare const PUBLIC_KEY_PLACEHOLDER: string
+declare const CDN_URLS_PLACEHOLDER: string[]
+declare const DELAY_PLACEHOLDER: number
+
 declare const SW: ServiceWorkerGlobalScope
 declare let onfetch: typeof SW.onfetch
 declare let onactivate: typeof SW.onactivate
@@ -75,7 +79,7 @@ declare let Q: any[]
     }
   } else {
     // Service Worker 环境
-    Q = ['PUBLIC_KEY_PLACEHOLDER']
+    Q = [PUBLIC_KEY_PLACEHOLDER]
 
     // 事件必须初始化时注册（不能异步注册）
     onfetch = (e) => {
@@ -104,14 +108,10 @@ declare let Q: any[]
       globalEval('')
 
       // 同时从多个公共 CDN 加载 main-js，哪个先完成执行哪个，提高稳定性
-      const URL_CDNS = [
-        'https://cdn.jsdelivr.net/npm/freecdn-js@' + VER + '/dist/freecdn-main.min.js',
-        'https://unpkg.com/freecdn-js@' + VER + '/dist/freecdn-main.min.js',
-      ]
-      URL_CDNS.map(loadMainJs)
+      CDN_URLS_PLACEHOLDER.map(loadMainJs)
 
       // 如果公共 CDN 不可用，从当前站点加载 main-js
-      setTimeout(loadMainJs, 1000, 'freecdn-internal/' + VER + '/freecdn-main.min.js')
+      setTimeout(loadMainJs, DELAY_PLACEHOLDER, 'freecdn-internal/' + VER + '/freecdn-main.min.js')
     } catch {
       // 无法 eval 的情况下，使用 importScripts 加载 main-js
       // 由于 importScripts 不支持 hash 校验，因此出于安全性，只从当前站点加载
