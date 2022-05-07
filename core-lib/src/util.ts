@@ -163,16 +163,12 @@ function getHostFromUrl(url: string) : string {
   return m[1]
 }
 
-
-const ROOT_PATH = location.origin + '/'
-const MY_ORIGIN_LEN = location.origin.length
-
 /**
  * @param url absolute or relative url
  */
 function toRelUrl(url: string) : string {
   if (url.startsWith(ROOT_PATH)) {
-    return url.substring(MY_ORIGIN_LEN)
+    return url.substring(MY_ORIGIN.length)
   }
   return url
 }

@@ -103,7 +103,7 @@ namespace Sw {
       return
     }
 
-    if (req.url === location.href) {
+    if (req.url === MY_URL) {
       resolve(mLoaderJsRes.clone())
       return
     }

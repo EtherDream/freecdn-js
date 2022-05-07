@@ -2,8 +2,7 @@ class ParamMime extends ParamBase {
   public static reuse = true
 
   private static extTypeMap: ReadonlyMap<string, string>
-
-  public static init() {
+  static {
     const map = new Map<string, string>()
 
     for (const item of MIME_DATA.split(';')) {

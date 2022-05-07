@@ -29,7 +29,7 @@ class Updater {
     manifestPath: string,
     private onAvailable: (manifest: Manifest) => void
   ) {
-    const url = new URL(manifestPath, location.href)
+    const url = new URL(manifestPath, MY_URL)
     console.assert(url.host === MY_HOST)
 
     const path = url.pathname + url.search
@@ -148,6 +148,7 @@ class Updater {
 
     // 缓存最新的清单内容
     const res = new Response(bytes)
+    res.headers.set('content-length', bytes.length + '')
     CacheManager.addCache(this.manifestUrl, res)
 
     const manifest = new Manifest()

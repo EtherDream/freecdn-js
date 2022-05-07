@@ -55,8 +55,8 @@ class FreeCDN {
     FIND: for (;;) {
       const urlObj = new URL(req.url)
 
-      // 同站点的 URL 使用相对路径。和清单的 Map 保持一致
-      const prefix = urlObj.host === MY_HOST ? '' : urlObj.origin
+      // 同源 URL 使用相对路径，不同源使用完整路径（和清单中格式保持一致）
+      const prefix = urlObj.origin === MY_ORIGIN ? '' : urlObj.origin
 
       // 带参数的 URL 尝试完整匹配
       if (urlObj.search) {

@@ -11,8 +11,13 @@ const DEFAULT_PARAMS = `
  valid_status=200
 `
 const DEFAULT_MANIFEST_PATH = '/freecdn-manifest.txt'
+const MY_URL = location.href
+const MY_HOST = location.host
+const MY_ORIGIN = location.origin
+const ROOT_PATH = MY_ORIGIN + '/'
+
 const INTERNAL_DIR = 'freecdn-internal/' + (IS_DEBUG ? 'dev' : VER)
-const INTERNAL_PATH = new URL(INTERNAL_DIR, location.href).pathname
+const INTERNAL_PATH = new URL(INTERNAL_DIR, ROOT_PATH).pathname
 const REG_IMG_EXTS = /\.(?:jpg|jpeg|png|apng|gif|ico|bmp)$/i
 
 const enum LEN {
@@ -26,7 +31,6 @@ type params_t = ReadonlyMap<string, string>
 const NATIVE_FETCH = fetch
 const EMPTY_BUF = new Uint8Array(0)
 
-const MY_HOST = location.host
 const CRYPTO = crypto.subtle
 
 
