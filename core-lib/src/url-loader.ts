@@ -58,10 +58,15 @@ class UrlLoader {
     let res: Response | void
 
     for (const mod of this.paramMods) {
-      // 可直接返回响应（例如 data 参数、pack 参数存在缓存的时候）
-      res = mod.onRequest(reqArgs, fileLoader)
-      if (res) {
-        break
+      // 可直接返回响应（例如 data 参数、bundle 参数）
+      const ret = mod.onRequest(reqArgs, fileLoader)
+      if (ret) {
+        // await is slow
+        // https://gist.github.com/EtherDream/52649e4939008e149d0cb3a944c055b7
+        res = isPromise(ret) ? await ret : ret
+        if (res) {
+          break
+        }
       }
     }
 
@@ -107,11 +112,7 @@ class UrlLoader {
 
       for (const mod of this.paramMods) {
         const ret = mod.onData(buf)
-
-        // await is slow
-        // https://gist.github.com/EtherDream/52649e4939008e149d0cb3a944c055b7
-        buf = ret instanceof Promise ? await ret : ret
-
+        buf = isPromise(ret) ? await ret : ret
         if (buf.length === 0) {
           continue READ
         }
@@ -129,7 +130,7 @@ class UrlLoader {
 
     for (const mod of this.paramMods) {
       const ret = mod.onEnd(buf)
-      buf = ret instanceof Promise ? await ret : ret
+      buf = isPromise(ret) ? await ret : ret
     }
 
     if (buf.length > 0) {

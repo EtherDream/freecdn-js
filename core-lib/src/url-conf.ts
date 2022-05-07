@@ -7,6 +7,7 @@ class UrlConf {
     this.nameClassMap = {
       // 参数优先级（越前面的参数优先执行）
       'data': ParamData,
+      'bundle': ParamBundle,
 
       'open_timeout': ParamOpenTimeout,
       'recv_timeout': ParamRecvTimeout,
@@ -14,7 +15,6 @@ class UrlConf {
       'req_headers': ParamReqHeaders,
       'valid_status': ParamValidStatus,
 
-      'pack': ParamPack,
       'headers': ParamHeaders,
       'expires': ParamExpires,
       'mime': ParamMime,
@@ -33,8 +33,6 @@ class UrlConf {
     Object.values(this.nameClassMap).forEach((cls, i) => {
       cls.priority = i
     })
-
-    ParamMime.init()
   }
 
   // 不带片段部分的 URL（可以是相对路径）

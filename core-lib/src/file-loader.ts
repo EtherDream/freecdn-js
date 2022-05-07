@@ -61,7 +61,7 @@ class FileLoader {
     // 原始 URL 作为后备资源
     let backupParams: params_t
 
-    if (fileConf.params.has('data')) {
+    if (fileConf.params.has('data') || fileConf.params.has('bundle')) {
       // 使用内嵌数据时，可保留所有参数
       backupParams = fileConf.params
     } else {

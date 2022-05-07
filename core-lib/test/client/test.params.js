@@ -365,6 +365,36 @@ describe('params', () => {
   })
 
 
+  describe('bundle', () => {
+    it('basic', async () => {
+      for (let i = 0; i < 3; i++) {
+        const [html, css, js] = await Promise.all([
+          freecdn.fetchText('/bundle-test-1/index.html'),
+          freecdn.fetchText('/bundle-test-1/assets/css/main.css'),
+          freecdn.fetchText('/bundle-test-1/assets/js/main.js'),
+        ])
+        expect(html).include('<h1>Hello World</h1>')
+        expect(css).include('font-family: monospace;')
+        expect(js).include('console.log(123)')
+
+        // test cache
+        await sleep(i * 100)
+      }
+    })
+
+    it('fallback', async () => {
+      const html = await freecdn.fetchText('/bundle/index.html')
+      expect(html).include('<h1>Hello World</h1>')
+    })
+
+    it('custom headers', async () => {
+      const res = await freecdn.fetch('/bundle-test-2/index.html')
+      expect(Object.fromEntries(res.headers))
+        .include({'x-custom': 'hello'})
+    })
+  })
+
+
   describe('open_timeout', () => {
     it('basic', async () => {
       const txt = await freecdn.fetchText('/open-delay')
@@ -378,29 +408,5 @@ describe('params', () => {
       const txt = await freecdn.fetchText('/recv-delay')
       expect(txt).include('4')
     }).timeout(1000 * 20)
-  })
-
-
-  describe('pack', () => {
-    it('basic', async () => {
-      const res = await freecdn.fetch('/bundle/assets/css/main.css')
-      const txt = await res.text()
-      expect(txt).eq('body, input { font-family: monospace; }')
-      expect(res.headers.get('content-type')).include('text/css')
-    })
-
-    it('empty', async () => {
-      const res = await freecdn.fetch('/bundle/assets/css/empty.css')
-      const txt = await res.text()
-      expect(txt).eq('')
-      expect(res.headers.get('content-type')).include('text/css')
-    })
-
-    it('last', async () => {
-      const res = await freecdn.fetch('/bundle/')
-      const txt = await res.text()
-      expect(txt).eq('<h1>Hello World</h1>')
-      expect(res.headers.get('content-type')).eq('text/html')
-    })
   })
 })

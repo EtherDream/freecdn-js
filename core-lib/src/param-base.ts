@@ -15,17 +15,17 @@ class ParamError extends Error {
 }
 
 abstract class ParamBase {
-  public onRequest(reqArgs: RequestArgs, fileLoader: FileLoader) : void | Response {
+  public onRequest(reqArgs: RequestArgs, fileLoader: FileLoader) : may_async<Response | void> {
   }
 
   public onResponse(resArgs: ResponseArgs, fileLoader: FileLoader, rawRes: Response) : void {
   }
 
-  public onData(chunk: Uint8Array) : Uint8Array | Promise<Uint8Array> {
+  public onData(chunk: Uint8Array) : may_async<Uint8Array> {
     return chunk
   }
 
-  public onEnd(chunk: Uint8Array) : Uint8Array | Promise<Uint8Array> {
+  public onEnd(chunk: Uint8Array) : may_async<Uint8Array> {
     return chunk
   }
 
