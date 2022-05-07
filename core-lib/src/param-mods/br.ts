@@ -29,11 +29,15 @@ class ParamBr extends ParamBase {
 ${BR_WASM_PATH}
 	https://cdn.jsdelivr.net/npm/freecdn-js@${VER}/dist/br/br.wasm
 	https://unpkg.com/freecdn-js@${VER}/dist/br/br.wasm
+	https://code.bdstatic.com/npm/freecdn-js@${VER}/dist/br/br.wasm
+	https://npm.elemecdn.com/freecdn-js@${VER}/dist/br/br.wasm
 	hash=${BR_WASM_HASH}
 
 ${BR_GLUE_PATH}
 	https://cdn.jsdelivr.net/npm/freecdn-js@${VER}/dist/br/br.min.js
 	https://unpkg.com/freecdn-js@${VER}/dist/br/br.min.js
+	https://code.bdstatic.com/npm/freecdn-js@${VER}/dist/br/br.min.js
+	https://npm.elemecdn.com/freecdn-js@${VER}/dist/br/br.min.js
 	hash=${BR_GLUE_HASH}
 `
     const onError = () => {
