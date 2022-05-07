@@ -95,7 +95,7 @@ describe('basic', () => {
     })
 
     it('3rd', async () => {
-      const ret = await freecdn.fetchText('http://127.0.0.1:10003/api/works')
+      const ret = await freecdn.fetchText('http://127.0.0.1:10003/api-proxy/works')
       expect(ret).eq('works')
     })
   })
