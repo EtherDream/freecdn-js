@@ -1,7 +1,12 @@
+'use strict'
 const crypto = require('crypto')
 const zlib = require('zlib')
 const fs = require('fs')
 
+// https://github.com/mozilla/source-map/issues/454
+if (global.fetch) {
+  delete global.fetch
+}
 const gulp = require('gulp')
 const ts = require('gulp-typescript')
 const rename = require("gulp-rename")
