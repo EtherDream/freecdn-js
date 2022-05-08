@@ -40,28 +40,28 @@ class ParamBundle extends ParamBase {
     }
 
     const path = fileLoader.suffix
-    let res = fileMap.get(path)
-
-    for (;;) {
-      if (res) {
-        break
-      }
-      if (path === '') {
-        res = fileMap.get('index.html')
-        break
-      }
-      if (path.endsWith('/')) {
-        res = fileMap.get(path + 'index.html')
-        break
-      }
-      if (fileMap.has(path + '/index.html')) {
-        const redir = fileLoader.fileConf.name + path + '/'
-        return new Response(`<meta http-equiv="Refresh" content="0;url=${redir}">`)
-      }
-      break
-    }
+    const res = fileMap.get(path)
     if (res) {
       return res.clone()
+    }
+    if (path === '') {
+      const res = fileMap.get('index.html')
+      if (res) {
+        fileLoader.suffix = 'index.html'
+        return res.clone()
+      }
+    }
+    if (path.endsWith('/')) {
+      const res = fileMap.get(path + 'index.html')
+      if (res) {
+        fileLoader.suffix = path + 'index.html'
+        return res.clone()
+      }
+    }
+    if (fileMap.has(path + '/index.html')) {
+      fileLoader.suffix = path + '/index.html'
+      const redir = fileLoader.fileConf.name + path + '/'
+      return new Response(`<meta http-equiv="Refresh" content="0;url=${redir}">`)
     }
   }
 
@@ -77,12 +77,19 @@ class ParamBundle extends ParamBase {
     ParamBundle.cacheMap.set(this.packUrl, signal)
 
     // TODO: support stream
-    const cdn = new FreeCDN()
-    cdn.manifest = manifest
 
     let pkgBin: Uint8Array
     try {
-      pkgBin = await cdn.fetchBin(this.packUrl)
+      if (manifest.has(this.packUrl)) {
+        const cdn = new FreeCDN()
+        cdn.manifest = manifest
+        pkgBin = await cdn.fetchBin(this.packUrl)
+      } else {
+        // 资源包不在清单中，或不是普通文件（例如是目录），则直接加载，防止循环依赖
+        const res = await NATIVE_FETCH(this.packUrl)
+        const buf = await res.arrayBuffer()
+        pkgBin = new Uint8Array(buf)
+      }
     } catch {
       this.warn('failed to load')
       return

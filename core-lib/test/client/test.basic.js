@@ -67,7 +67,7 @@ describe('basic', () => {
       const res = await freecdn.fetch('/path/to')
       expect(res.status).eq(302)
       expect(Object.fromEntries(res.headers))
-        .include({'location': 'http://127.0.0.1:10001/path/to/'})
+        .include({'location': location.origin + '/path/to/'})
     })
 
     it('3rd try index page', async () => {
