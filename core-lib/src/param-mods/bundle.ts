@@ -33,13 +33,33 @@ class ParamBundle extends ParamBase {
         return
       }
       fileMap = map
-    } else if (r instanceof Promise) {
+    } else if (isPromise(r)) {
       fileMap = await r
     } else {
       fileMap = r
     }
 
-    const res = fileMap.get(fileLoader.suffix)
+    const path = fileLoader.suffix
+    let res = fileMap.get(path)
+
+    for (;;) {
+      if (res) {
+        break
+      }
+      if (path === '') {
+        res = fileMap.get('index.html')
+        break
+      }
+      if (path.endsWith('/')) {
+        res = fileMap.get(path + 'index.html')
+        break
+      }
+      if (fileMap.has(path + '/index.html')) {
+        const redir = fileLoader.fileConf.name + path + '/'
+        return new Response(`<meta http-equiv="Refresh" content="0;url=${redir}">`)
+      }
+      break
+    }
     if (res) {
       return res.clone()
     }

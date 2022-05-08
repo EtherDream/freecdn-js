@@ -382,6 +382,21 @@ describe('params', () => {
       }
     })
 
+    it('root index', async () => {
+      const html = await freecdn.fetchText('/bundle-test-1/')
+      expect(html).include('<h1>Hello World</h1>')
+    })
+
+    it('sub index', async () => {
+      const html = await freecdn.fetchText('/bundle-test-1/assets/pages/')
+      expect(html).include('<h1>sub page</h1>')
+    })
+
+    it('redir to sub page', async () => {
+      const html = await freecdn.fetchText('/bundle-test-1/assets/pages')
+      expect(html).include(`<meta http-equiv="Refresh" content="0;url=/bundle-test-1/assets/pages/">`)
+    })
+
     it('fallback', async () => {
       const html = await freecdn.fetchText('/bundle/index.html')
       expect(html).include('<h1>Hello World</h1>')
