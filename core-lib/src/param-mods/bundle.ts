@@ -24,22 +24,29 @@ class ParamBundle extends ParamBase {
   }
 
   public async onRequest(reqArgs: RequestArgs, fileLoader: FileLoader) {
+    if (fileLoader.cdn.isSubReq) {
+      return
+    }
     let fileMap: bundle_file_map_t
 
     const r = ParamBundle.cacheMap.get(this.packUrl)
     if (r === undefined) {
-      const map = await this.loadPkg(fileLoader.manifest)
-      if (!map) {
-        return
-      }
-      fileMap = map
+      const signal = promisex<bundle_file_map_t>()
+      ParamBundle.cacheMap.set(this.packUrl, signal)
+
+      fileMap = new Map()
+      await this.loadPkg(fileLoader, fileMap)
+
+      ParamBundle.cacheMap.set(this.packUrl, fileMap)
+      signal.resolve(fileMap)
+
     } else if (isPromise(r)) {
       fileMap = await r
     } else {
       fileMap = r
     }
 
-    const path = fileLoader.suffix
+    const path = fileLoader.suffix || ''
     const res = fileMap.get(path)
     if (res) {
       return res.clone()
@@ -50,6 +57,7 @@ class ParamBundle extends ParamBase {
         fileLoader.suffix = 'index.html'
         return res.clone()
       }
+      return
     }
     if (path.endsWith('/')) {
       const res = fileMap.get(path + 'index.html')
@@ -57,39 +65,30 @@ class ParamBundle extends ParamBase {
         fileLoader.suffix = path + 'index.html'
         return res.clone()
       }
+      return
     }
     if (fileMap.has(path + '/index.html')) {
       fileLoader.suffix = path + '/index.html'
-      const redir = fileLoader.fileConf.name + path + '/'
-      return new Response(`<meta http-equiv="Refresh" content="0;url=${redir}">`)
+      return new Response("<script>location.pathname+='/'</script>")
     }
   }
 
-  private async loadPkg(manifest: Manifest) {
+  private async loadPkg(fileLoader: FileLoader, fileMap: bundle_file_map_t) {
     type conf_t = {
       [file: string]: {
         [headerName: string] : string | number
       }
     }
-    const fileMap: bundle_file_map_t = new Map()
-    const signal = promisex<bundle_file_map_t>()
-
-    ParamBundle.cacheMap.set(this.packUrl, signal)
 
     // TODO: support stream
+    const cdn = new FreeCDN()
+    cdn.manifest = fileLoader.cdn.manifest
+    cdn.weightConf = fileLoader.cdn.weightConf
+    cdn.isSubReq = true
 
     let pkgBin: Uint8Array
     try {
-      if (manifest.has(this.packUrl)) {
-        const cdn = new FreeCDN()
-        cdn.manifest = manifest
-        pkgBin = await cdn.fetchBin(this.packUrl)
-      } else {
-        // 资源包不在清单中，或不是普通文件（例如是目录），则直接加载，防止循环依赖
-        const res = await NATIVE_FETCH(this.packUrl)
-        const buf = await res.arrayBuffer()
-        pkgBin = new Uint8Array(buf)
-      }
+      pkgBin = await cdn.fetchBin(this.packUrl)
     } catch {
       this.warn('failed to load')
       return
@@ -128,10 +127,6 @@ class ParamBundle extends ParamBase {
 
       offset += len
     }
-
-    ParamBundle.cacheMap.set(this.packUrl, fileMap)
-    signal.resolve(fileMap)
-    return fileMap
   }
 
   private warn(msg: string) {

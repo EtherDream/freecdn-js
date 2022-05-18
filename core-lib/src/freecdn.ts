@@ -12,9 +12,10 @@
 class FreeCDN {
   public enableCacheStorage = true
   public manifest: Manifest | undefined
+  public isSubReq = false
 
   private readonly updater: Updater | undefined
-  private weightConf = new Map<string, number>()
+  public weightConf = new Map<string, number>()
   private inited = false
 
 
@@ -56,11 +57,11 @@ class FreeCDN {
       const urlObj = new URL(req.url)
 
       // 同源 URL 使用相对路径，不同源使用完整路径（和清单中格式保持一致）
-      const prefix = urlObj.origin === MY_ORIGIN ? '' : urlObj.origin
+      const originPrefix = urlObj.origin === MY_ORIGIN ? '' : urlObj.origin
 
       // 带参数的 URL 尝试完整匹配
       if (urlObj.search) {
-        fileConf = manifest.get(prefix + urlObj.pathname + urlObj.search)
+        fileConf = manifest.get(originPrefix + urlObj.pathname + urlObj.search)
         if (fileConf) {
           break
         }
@@ -68,7 +69,7 @@ class FreeCDN {
 
       // 合并路径中连续的 `/`
       const path = urlObj.pathname.replace(/\/{2,}/g, '/')
-      const file = prefix + path
+      const file = originPrefix + path
 
       // 优先使用 avif、webp 版本
       if (REG_IMG_EXTS.test(file) && req.mode !== 'cors' && !req.integrity) {
@@ -110,7 +111,7 @@ class FreeCDN {
       let dir = path.replace(/[^/]*$/, '')
 
       for (;;) {
-        fileConf = manifest.get(prefix + dir)
+        fileConf = manifest.get(originPrefix + dir)
         if (fileConf) {
           suffix = path.substring(dir.length) + urlObj.search
           break FIND
@@ -144,8 +145,13 @@ class FreeCDN {
       }
     }
 
-    const fileLoader = new FileLoader(fileConf, req, manifest, this.weightConf, range, suffix)
-    const promise = promisex<Response>()
+    const fileLoader = new FileLoader(fileConf, req, this, range, suffix)
+    const promiseObj = promisex<Response>()
+
+    req.signal.addEventListener('abort', () => {
+      const reason = (req.signal as any).reason || 'unknown'
+      fileLoader.abort(reason)
+    })
 
     // 如果文件只有一个 hash 则不用流模式（必须完整下载才能校验 hash）
     if (fileHash) {
@@ -159,48 +165,40 @@ class FreeCDN {
             cacheRes.headers.set('x-raw-url', req.url)
             CacheManager.addHash(fileHash, cacheRes)
           }
-          promise.resolve(res)
+          promiseObj.resolve(res)
         }
       }
       fileLoader.onError = (err) => {
         console.warn('[FreeCDN]', err.message, err.urlErrs)
-        promise.reject(err)
+        promiseObj.reject(err)
       }
       fileLoader.onEnd = () => {
       }
       fileLoader.open()
-      return promise
+      return promiseObj
     }
 
     // 如果文件有多个 hash 或没有 hash，可使用流模式
-    let controller: ReadableStreamDefaultController
-    let paused = false
+    let controller: ReadableStreamDefaultController<Uint8Array>
 
     const checkPressure = () => {
       const {desiredSize} = controller
       if (desiredSize === null) {
+        console.warn('desiredSize is null')
         return
       }
       if (desiredSize <= 0) {
-        if (!paused) {
-          fileLoader.pause()
-          paused = true
-        }
+        fileLoader.pause()
       } else {
-        if (paused) {
-          fileLoader.resume()
-          paused = false
-        }
+        fileLoader.resume()
       }
     }
 
     const stream = new ReadableStream({
-      start(c: typeof controller) {
+      start(c) {
         controller = c
       },
-      pull() {
-        checkPressure()
-      },
+      pull: checkPressure,
       cancel(reason: any) {
         console.warn('[FreeCDN] stream cancel:', reason)
         fileLoader.abort(reason)
@@ -217,14 +215,14 @@ class FreeCDN {
     fileLoader.onError = (err) => {
       controller.error()
       console.warn('[FreeCDN]', err.message, err.urlErrs)
-      promise.reject(err)
+      promiseObj.reject(err)
     }
     fileLoader.onOpen = (args) => {
       const res = new Response(stream, args)
-      promise.resolve(res)
+      promiseObj.resolve(res)
     }
     fileLoader.open()
-    return promise
+    return promiseObj
   }
 
   public async fetchText(url: string) {
