@@ -18,17 +18,21 @@ class FileLoader {
   private readonly urlConfs: UrlConf[]
   private readonly urlLoaderSet = new Set<UrlLoader>()
 
+  private vUrlConf: UrlConf | undefined
+
+  private isPaused = false
+  private isAborted = false
   private delayTid = 0
   private urlErrs: {url: string, err: Error}[] = []
 
-  private readonly hasRange: boolean = false
-  private readonly rangeBegin!: number
-  private readonly rangeEnd!: number
-  private readonly fileSize!: number
+  public readonly hasRange: boolean = false
+  public readonly rangeBegin: number | undefined
+  public readonly rangeEnd: number | undefined
+  public readonly fileSize: number | undefined
 
   private opened = false
   private closed = false
-  private bytesRead = 0
+  public bytesRead = 0
 
   public onOpen!: (args: ResponseArgs) => void
   public onData!: (chunk: Uint8Array) => void
@@ -39,11 +43,12 @@ class FileLoader {
   public constructor(
     public readonly fileConf: FileConf,
     public readonly rawReq: Request,
-    public readonly manifest: Manifest,
-    public readonly weightConf: Map<string, number>,
+    public readonly cdn: FreeCDN,
     public range: string | null,
     public suffix: string
   ) {
+    const fileParams = fileConf.params
+
     if (range) {
       const r = this.parseReqRange(range)
       if (r) {
@@ -51,30 +56,24 @@ class FileLoader {
         this.hasRange = true
         this.bytesRead = this.rangeBegin
       }
-
-      const fileSize = fileConf.params.get('size')
+      const fileSize = fileParams.get('size')
       if (fileSize) {
         this.fileSize = +fileSize
       }
     }
 
-    // 原始 URL 作为后备资源
-    let backupParams: params_t
+    if (fileParams.has('data') || fileParams.has('bundle') || fileParams.has('concat')) {
+      this.vUrlConf = new UrlConf(undefined, fileParams)
+    }
 
-    if (fileConf.params.has('data') || fileConf.params.has('bundle')) {
-      // 使用内嵌数据时，可保留所有参数
-      backupParams = fileConf.params
-    } else {
-      // 使用原始 URL 时禁止修改内容，例如 pos、xor 等操作
-      // 因此只保留白名单中的参数
-      const map = new Map<string, string>()
-      for (const k of FILE_BACKUP_PARAMS) {
-        const v = fileConf.params.get(k)
-        if (v !== undefined) {
-          map.set(k, v)
-        }
+    // 原始 URL 作为后备资源
+    // 禁止修改原始内容，因此只保留白名单中的参数
+    const backupParams = new Map<string, string>()
+    for (const k of FILE_BACKUP_PARAMS) {
+      const v = fileParams.get(k)
+      if (v !== undefined) {
+        backupParams.set(k, v)
       }
-      backupParams = map
     }
     const backupUrlConf = new UrlConf(fileConf.name, backupParams)
 
@@ -97,17 +96,25 @@ class FileLoader {
   }
 
   private buildResRange(resArgs: ResponseArgs) {
+    const begin = this.rangeBegin as number
     let end = 0
-    if (this.rangeEnd !== 0) {
+    if (this.rangeEnd) {
       end = this.rangeEnd - 1
     } else if (this.fileSize) {
       end = this.fileSize - 1
+    } else if (resArgs.contentLen > 0) {
+      end = resArgs.contentLen
     }
-    const val = 'bytes ' + this.rangeBegin + '-' + end + '/' + (this.fileSize || '*')
+    const val = 'bytes ' + begin + '-' + end + '/' + (this.fileSize || '*')
 
     // TODO: status 416
     resArgs.status = 206
     resArgs.headers.set('content-range', val)
+
+    if (end > 0) {
+      const len = end - begin + 1
+      resArgs.headers.set('content-length', len + '')
+    }
   }
 
   public open() {
@@ -115,18 +122,34 @@ class FileLoader {
   }
 
   public pause() {
+    if (this.isPaused) {
+      return
+    }
+    this.isPaused = true
+
+    // TODO: 进度落后的 Loader 无需暂停
     for (const urlLoader of this.urlLoaderSet) {
       urlLoader.pause()
     }
   }
 
   public resume() {
+    if (!this.isPaused) {
+      return
+    }
+    this.isPaused = false
+
     for (const urlLoader of this.urlLoaderSet) {
       urlLoader.resume()
     }
   }
 
   public abort(reason: any) {
+    if (this.isAborted) {
+      return
+    }
+    this.isAborted = true
+
     for (const urlLoader of this.urlLoaderSet) {
       urlLoader.abort(reason)
     }
@@ -136,6 +159,13 @@ class FileLoader {
   }
 
   private getNextUrl() {
+    // 优先使用虚拟 URL（例如存在 data 参数时，无需使用真实 URL）
+    const {vUrlConf} = this
+    if (vUrlConf) {
+      this.vUrlConf = undefined
+      return {weight: 100, conf: vUrlConf}
+    }
+
     const {urlConfs} = this
     const lastIndex = urlConfs.length - 1
     if (lastIndex === -1) {
@@ -146,7 +176,7 @@ class FileLoader {
     let index = 0
 
     urlConfs.forEach((conf, i) => {
-      const w = Network.getUrlWeight(conf.url, now, this.weightConf)
+      const w = Network.getUrlWeight(conf.url as string, now, this.cdn.weightConf)
       if (w > weight) {
         weight = w
         index = i
@@ -165,7 +195,7 @@ class FileLoader {
     const ret = this.getNextUrl()
     if (!ret) {
       if (this.urlLoaderSet.size === 0) {
-        const err = new FileLoaderError('failed to load: ' + this.getFileConfUrl())
+        const err = new FileLoaderError('failed to load: ' + this.getSourceUrl())
         err.urlErrs = this.urlErrs
         this.onError(err)
       }
@@ -184,11 +214,11 @@ class FileLoader {
     this.createUrlLoader(conf)
   }
 
-  public getFileConfUrl() {
+  public getSourceUrl() {
     return this.fileConf.name + this.suffix
   }
 
-  private getBackupUrl(url: string) {
+  private getTargetUrl(url: string) {
     if (url.endsWith('/')) {
       return url + this.suffix
     }
@@ -196,8 +226,8 @@ class FileLoader {
   }
 
   private createUrlLoader(urlConf: UrlConf) {
-    const url = this.getBackupUrl(urlConf.url)
-    const mods = urlConf.parse(this.manifest)
+    const url = urlConf.url && this.getTargetUrl(urlConf.url)
+    const mods = urlConf.parse(this.cdn.manifest as Manifest)
 
     const urlLoader = new UrlLoader(url, mods)
     this.urlLoaderSet.add(urlLoader)
@@ -238,7 +268,7 @@ class FileLoader {
     }
 
     urlLoader.onError = (err) => {
-      this.urlErrs.push({url: urlLoader.url, err})
+      this.urlErrs.push({url: urlLoader.url || '', err})
       this.urlLoaderSet.delete(urlLoader)
       this.loadNextUrl()
     }
@@ -254,6 +284,6 @@ class FileLoader {
       this.onOpen(resArgs)
     }
 
-    urlLoader.request(this)
+    urlLoader.load(this)
   }
 }

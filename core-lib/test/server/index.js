@@ -72,7 +72,7 @@ app.get('/api/delay-res', (req, res) => {
 app.get('/api/delay-write', (req, res) => {
   res.socket.setNoDelay()
   res.writeHead(200)
-  res.write('>')
+  // res.write('>')
 
   let i = 0
   const delay = +req.query.delay

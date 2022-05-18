@@ -243,47 +243,72 @@ describe('params', () => {
 
   describe('pos', () => {
     it('basic', async () => {
-      const txt = await freecdn.fetchText('/file-right')
+      const res = await freecdn.fetch('/file-right')
+      const txt = await res.text()
       expect(txt).eq('World')
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': '5'})
     })
 
     it('out of range', async () => {
-      const txt = await freecdn.fetchText('/pos-out-of-range')
-      expect(txt).length(0)
+      const res = await freecdn.fetch('/pos-out-of-range')
+      const txt = await res.text()
+      expect(txt).eq('')
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': '0'})
     })
   })
 
 
   describe('size', () => {
     it('basic', async () => {
-      const txt = await freecdn.fetchText('/file-left')
+      const res = await freecdn.fetch('/file-left')
+      const txt = await res.text()
       expect(txt).eq('Hello')
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': '5'})
     })
   })
 
 
   describe('prefix', () => {
     it('str', async () => {
-      const txt = await freecdn.fetchText('/prefix-str')
-      expect(txt).eq('-----\tbegin\t-----\nHello World')
+      const DATA = '-----\tbegin\t-----\nHello World'
+      const res = await freecdn.fetch('/prefix-str')
+      const txt = await res.text()
+      expect(txt).eq(DATA)
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': DATA.length + ''})
     })
 
     it('bin', async () => {
-      const txt = await freecdn.fetchText('/prefix-bin')
-      expect(txt).eq('你好😁Hello World')
+      const DATA = '你好😁Hello World'
+      const res = await freecdn.fetch('/prefix-bin')
+      const txt = await res.text()
+      expect(txt).eq(DATA)
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': strToBytes(DATA).length + ''})
     })
   })
 
 
   describe('suffix', () => {
     it('str', async () => {
-      const txt = await freecdn.fetchText('/suffix-str')
-      expect(txt).eq('Hello World\n-----\tend\t-----')
+      const DATA = 'Hello World\n-----\tend\t-----'
+      const res = await freecdn.fetch('/suffix-str')
+      const txt = await res.text()
+      expect(txt).eq(DATA)
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': DATA.length + ''})
     })
 
     it('bin', async () => {
-      const txt = await freecdn.fetchText('/suffix-bin')
-      expect(txt).eq('Hello World\u0000\u0001\u0002\u0003\u0004')
+      const DATA = 'Hello World\u0000\u0001\u0002\u0003\u0004'
+      const res = await freecdn.fetch('/suffix-bin')
+      const txt = await res.text()
+      expect(txt).eq(DATA)
+      expect(Object.fromEntries(res.headers))
+        .include({'content-length': DATA.length + ''})
     })
   })
 
@@ -401,7 +426,7 @@ describe('params', () => {
     it('redir to sub page', async () => {
       const res = await freecdn.fetch('/bundle-test-1/assets/pages')
       const txt = await res.text()
-      expect(txt).include(`<meta http-equiv="Refresh" content="0;url=/bundle-test-1/assets/pages/">`)
+      expect(txt).include('<script>location.pathname')
       expect(Object.fromEntries(res.headers))
         .include({'content-type': 'text/html'})
     })
@@ -415,6 +440,43 @@ describe('params', () => {
       const res = await freecdn.fetch('/bundle-test-2/index.html')
       expect(Object.fromEntries(res.headers))
         .include({'x-custom': 'hello'})
+    })
+  })
+
+
+  describe('concat', () => {
+    it('basic', async () => {
+      const txt = await freecdn.fetchText('/concat-hello')
+      expect(txt).eq('Hello World' + 'hello2')
+    })
+
+    it('mix', async () => {
+      const txt = await freecdn.fetchText('/concat-mix')
+      expect(txt).eq('Hello World' + 'console.log("1")')
+    })
+
+    it('wildcard', async () => {
+      const txt = await freecdn.fetchText('/concat-wc')
+      expect(txt).eq('Hello World' +
+        'A'.repeat(10000) +
+        'B'.repeat(10000) +
+        'C'.repeat(10000)
+      )
+    })
+
+    it('range', async () => {
+      performance.clearResourceTimings()
+      const res = await freecdn.fetch('/concat-range', {
+        headers: {
+          range: 'bytes=10001-20001'
+        }
+      })
+      // 不应该访问第一个切片文件
+      const arr = performance.getEntriesByName('http://127.0.0.1:10003/api/delay-write?delay=1&count=10&data=A&size=1000')
+
+      const txt = await res.text()
+      expect(txt).eq('B'.repeat(10000 - 1) + 'C')
+      expect(arr.length).eq(0)
     })
   })
 

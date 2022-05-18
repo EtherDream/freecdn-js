@@ -24,6 +24,9 @@
       const asc = bytes.reduce((s, v) => s + String.fromCharCode(v), '')
       return btoa(asc)
     }
+    function strToBytes(str) {
+      return new TextEncoder().encode(str)
+    }
   </script>
   <script src="test.weight.js"></script>
   <script src="test.basic.js"></script>

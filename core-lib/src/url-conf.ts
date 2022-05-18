@@ -8,6 +8,7 @@ class UrlConf {
       // 参数优先级（越前面的参数优先执行）
       'data': ParamData,
       'bundle': ParamBundle,
+      'concat': ParamConcat,
 
       'open_timeout': ParamOpenTimeout,
       'recv_timeout': ParamRecvTimeout,
@@ -36,17 +37,18 @@ class UrlConf {
   }
 
   // 不带片段部分的 URL（可以是相对路径）
-  public readonly url: string
+  public readonly url: string | undefined
 
   // URL 片段部分
   public readonly frag: string | undefined
 
 
-  public constructor(
-    fullUrl: string,
+  public constructor(url: string | undefined,
     private readonly fileParams: params_t
   ) {
-    [this.url, this.frag] = getPair(toRelUrl(fullUrl), '#')
+    if (url) {
+      [this.url, this.frag] = getPair(toRelUrl(url), '#')
+    }
   }
 
   public parse(manifest: Manifest) {
@@ -57,10 +59,12 @@ class UrlConf {
     mergeMap(params, manifest.globalParams)
 
     // 站点参数
-    const host = this.url[0] === '/' ? MY_HOST : getHostFromUrl(this.url)
-    const hostParams = manifest.getParams('@host ' + host)
-    if (hostParams) {
-      mergeMap(params, hostParams)
+    if (this.url) {
+      const host = this.url[0] === '/' ? MY_HOST : getHostFromUrl(this.url)
+      const hostParams = manifest.getParams('@host ' + host)
+      if (hostParams) {
+        mergeMap(params, hostParams)
+      }
     }
 
     // 文件参数
