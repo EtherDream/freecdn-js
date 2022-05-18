@@ -16,6 +16,7 @@
     "*.js"
   ],
   "rules": {
+    "eqeqeq": "error",
     "no-trailing-spaces": ["warn"],
     "no-empty": "off",
     "no-inner-declarations": "off",
