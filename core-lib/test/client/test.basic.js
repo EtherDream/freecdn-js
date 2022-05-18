@@ -127,12 +127,8 @@ describe('basic', () => {
           range: 'bytes=1-3'
         }
       })
-      const res = await freecdn.fetch(req)
-      const bin = await res.arrayBuffer()
-      const arr = new Uint8Array(bin)
-      expect(arr).length(2)
-      expect(arr[0]).eq('e'.charCodeAt(0))
-      expect(arr[1]).eq('l'.charCodeAt(0))
+      const txt = await freecdn.fetchText(req)
+      expect(txt).eq('el')
     })
 
     it('hello world 10-100', async () => {
@@ -141,11 +137,8 @@ describe('basic', () => {
           range: 'bytes=10-100'
         }
       })
-      const res = await freecdn.fetch(req)
-      const bin = await res.arrayBuffer()
-      const arr = new Uint8Array(bin)
-      expect(arr).length(1)
-      expect(arr[0]).eq('d'.charCodeAt(0))
+      const txt = await freecdn.fetchText(req)
+      expect(txt).eq('d')
     })
 
     it('big file 0-N', async () => {

@@ -16,6 +16,12 @@ class ParamSuffix extends ParamBase {
     super()
   }
 
+  public onResponse(resArgs: ResponseArgs) {
+    if (resArgs.contentLen >= 0) {
+      resArgs.contentLen += this.bytes.length
+    }
+  }
+
   public onEnd(chunk: Uint8Array) {
     if (chunk.length === 0) {
       return this.bytes

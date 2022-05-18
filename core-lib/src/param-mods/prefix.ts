@@ -17,6 +17,12 @@ class ParamPrefix extends ParamBase {
     super()
   }
 
+  public onResponse(resArgs: ResponseArgs) {
+    if (resArgs.contentLen >= 0) {
+      resArgs.contentLen += this.bytes.length
+    }
+  }
+
   public onData(chunk: Uint8Array) {
     if (this.done) {
       return chunk

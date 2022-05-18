@@ -9,11 +9,14 @@ class ParamSize extends ParamBase {
   }
 
 
-  private remain: number
-
-  public constructor(size: number) {
+  public constructor(
+    private remain: number
+  ) {
     super()
-    this.remain = size
+  }
+
+  public onResponse(resArgs: ResponseArgs) {
+    resArgs.contentLen = this.remain
   }
 
   public onData(chunk: Uint8Array) {

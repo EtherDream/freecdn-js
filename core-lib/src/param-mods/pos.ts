@@ -1,23 +1,29 @@
 class ParamPos extends ParamBase {
 
   public static parseConf(conf: string) {
-    const begin = parseByteUnit(conf)
-    if (isNaN(begin)) {
+    const pos = parseByteUnit(conf)
+    if (isNaN(pos)) {
       return 'invalid byte format'
     }
-    if (begin === 0) {
+    if (pos === 0) {
       return
     }
-    return [begin]
+    return [pos]
   }
 
 
-  private remain: number
-
-
-  public constructor(pos: number) {
+  public constructor(
+    private remain: number
+  ) {
     super()
-    this.remain = pos
+  }
+
+  public onResponse(resArgs: ResponseArgs) {
+    if (resArgs.contentLen !== -1) {
+      if ((resArgs.contentLen -= this.remain) < 0) {
+        resArgs.contentLen = 0
+      }
+    }
   }
 
   public onData(chunk: Uint8Array) {

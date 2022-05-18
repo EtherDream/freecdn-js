@@ -115,6 +115,10 @@ ${BR_GLUE_PATH}
     super()
   }
 
+  public onResponse(resArgs: ResponseArgs) {
+    resArgs.contentLen = -1
+  }
+
   public async onData(chunk: Uint8Array) {
     if (ParamBr.signal) {
       await this.waitWasm()

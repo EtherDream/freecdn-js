@@ -6,6 +6,7 @@ interface ResponseArgs extends ResponseInit {
   headers: Headers
   status: number
   statusText: string
+  contentLen: number
 }
 
 class ParamError extends Error {
