@@ -34,7 +34,7 @@ class ParamMime extends ParamBase {
     let type: string | undefined
 
     if (this.mime === '') {
-      const url = fileLoader.getFileConfUrl()
+      const url = fileLoader.getSourceUrl()
       if (!url.includes('?')) {
         const m = url.match(/\.(\w+)$/)
         if (m) {

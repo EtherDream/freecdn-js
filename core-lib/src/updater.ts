@@ -16,7 +16,7 @@ class Updater {
   private readonly urlWsMap = new Map<string, WebSocket>()
   private readonly wsArgs: string = ''
 
-  private updating = false
+  private updateSignal: PromiseX<boolean> | undefined
   private manifestHash = EMPTY_BUF
   private pollingTimer = 0
   private pollingInterval = UpdaterConf.DEFAULT_INTERVAL
@@ -67,23 +67,25 @@ class Updater {
   }
 
   public async update() {
-    if (this.updating) {
-      return true
+    if (this.updateSignal) {
+      return this.updateSignal
     }
     const now = Date.now()
     if (now - this.lastTime < UpdaterConf.MIN_INTERVAL) {
       return true
     }
     this.lastTime = now
-    this.updating = true
+    this.updateSignal = promisex()
+
+    let ret = false
     try {
-      return await this.updateUnsafe()
+      ret = await this.updateUnsafe()
     } catch (err) {
       console.error('[FreeCDN/Updater] update err:', err)
-      return false
-    } finally {
-      this.updating = false
     }
+    this.updateSignal.resolve(ret)
+    this.updateSignal = undefined
+    return ret
   }
 
   private async updateUnsafe() {
