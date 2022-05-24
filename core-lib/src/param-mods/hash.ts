@@ -34,8 +34,7 @@ class ParamHash extends ParamBase {
   }
 
 
-  private readonly queueArr: Uint8Array[] = []
-  private queueLen = 0
+  private readonly reader = new Reader()
   private hasData = false
 
   public constructor(
@@ -45,55 +44,34 @@ class ParamHash extends ParamBase {
     super()
   }
 
-  public async onData(chunk: Uint8Array) {
+  public onData(chunk: Uint8Array) {
     this.hasData = true
-    this.queueLen += chunk.length
+    this.reader.feed(chunk)
 
-    if (this.queueLen > ParamHashConf.MAX_QUEUE_LEN) {
+    if (this.reader.availLen > LEN.MAX_QUEUE) {
       throw new ParamError('max queue length exceeded')
     }
-
-    if (this.queueLen >= this.blkLen) {
-      // let queueLen be integer multiple of blkLen
-      const remain = this.queueLen % this.blkLen
-      if (remain) {
-        const head = chunk.subarray(0, -remain)
-        this.queueArr.push(head)
-        this.queueLen -= remain
-      } else {
-        this.queueArr.push(chunk)
-      }
-      const blks = await this.pull()
-      this.queueLen = remain
-
-      if (remain) {
-        const tail = chunk.subarray(-remain)
-        this.queueArr.push(tail)
-      }
-      return blks
+    if (this.reader.availLen < this.blkLen) {
+      return EMPTY_BUF
     }
-
-    this.queueArr.push(chunk)
-    return EMPTY_BUF
+    return this.pull(this.reader.availLen % this.blkLen)
   }
 
   public async onEnd(chunk: Uint8Array) {
     if (chunk.length > 0) {
-      this.queueLen += chunk.length
-      this.queueArr.push(chunk)
+      this.reader.feed(chunk)
     }
-    if (this.queueLen === 0) {
+    if (this.reader.availLen === 0) {
       if (!this.hasData) {
         await this.verify(EMPTY_BUF)
       }
       return EMPTY_BUF
     }
-    return this.pull()
+    return this.pull(0)
   }
 
-  private async pull() {
-    const blks = concatBufs(this.queueArr, this.queueLen)
-    this.queueArr.length = 0
+  private async pull(remain: number) {
+    const blks = this.reader.readBytesSync(this.reader.availLen - remain)
 
     for (let p = 0; p < blks.length; p += this.blkLen) {
       const blk = blks.subarray(p, p + this.blkLen)

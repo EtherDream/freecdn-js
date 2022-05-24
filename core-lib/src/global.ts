@@ -24,6 +24,7 @@ const enum LEN {
   SHA256_BIN = 32,
   SHA256_B64 = 44,
   PUBKEY_B64 = 124,
+  MAX_QUEUE = 1024 * 1024 * 50,
 }
 
 type params_t = ReadonlyMap<string, string>

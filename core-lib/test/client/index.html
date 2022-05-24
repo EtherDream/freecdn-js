@@ -27,6 +27,15 @@
     function strToBytes(str) {
       return new TextEncoder().encode(str)
     }
+    function randBytes(len, seed) {
+      const buf = new Uint8Array(len)
+      let key = ~seed
+      for (let i = 0; i < len; i++) {
+        key *= 31
+        buf[i] = key
+      }
+      return buf
+    }
   </script>
   <script src="test.weight.js"></script>
   <script src="test.basic.js"></script>

@@ -91,20 +91,18 @@ app.get('/api/delay-write', (req, res) => {
 })
 
 
-app.get('/api/big-file', (req, res) => {
+app.get('/api/rand-data', (req, res) => {
   res.writeHead(200)
-  const buf = Buffer.allocUnsafe(1024 * 1024)
-  buf.fill(1)
-  res.write(buf, () => {
-    buf.fill(2)
-    res.write(buf, () => {
-      buf.fill(3)
-      res.write(buf, () => {
-        buf.fill(4)
-        res.end(buf)
-      })
-    })
-  })
+  const len = +req.query.len
+  const seed = +req.query.seed
+
+  const buf = Buffer.allocUnsafe(len)
+  let key = ~seed
+  for (let i = 0; i < len; i++) {
+    key *= 31
+    buf[i] = key
+  }
+  res.end(buf)
 })
 
 // 1st site

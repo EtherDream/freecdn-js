@@ -368,24 +368,67 @@ describe('params', () => {
 
 
   describe('hash', () => {
-    it('correct', async () => {
-      const txt = await freecdn.fetchText('/hash-correct')
+    it('mini-file-correct', async () => {
+      const txt = await freecdn.fetchText('/hash-mini-file-correct')
       expect(txt).eq('Hello World')
     })
 
-    it('incorrect', async () => {
+    it('mini-file-incorrect', async () => {
       let hasError = false
       try {
-        await freecdn.fetchText('/hash-incorrect')
+        await freecdn.fetchText('/hash-mini-file-incorrect')
       } catch (err) {
         hasError = true
       }
       expect(hasError).true
     })
 
-    it('multi blocks', async () => {
-      const bin = await freecdn.fetchBin('/hash-multi-blocks')
-      expect(bin).length(1024 * 1024 * 4)
+    it('big-file-correct', async () => {
+      const bin = await freecdn.fetchBin('/hash-big-file-correct')
+      const exp = randBytes(102400, 1)
+      expect(bin).deep.eq(exp)
+    })
+
+    it('big-file-incorrect', async () => {
+      let hasError = false
+      try {
+        await freecdn.fetchText('/hash-big-file-incorrect')
+      } catch (err) {
+        hasError = true
+      }
+      expect(hasError).true
+    })
+
+    it('multi-blocks-correct', async () => {
+      const bin = await freecdn.fetchBin('/hash-multi-blocks-correct')
+      expect(bin).length(102400)
+    })
+
+    it('multi-blocks-incorrect', async () => {
+      const res = await freecdn.fetch('/hash-multi-blocks-incorrect')
+      const reader = res.body.getReader()
+      let hasError = false
+      let bytesLen = 0
+      for (;;) {
+        try {
+          const {value} = await reader.read()
+          if (value) {
+            bytesLen += value.length
+          } else {
+            break
+          }
+        } catch (err) {
+          hasError = true
+          break
+        }
+      }
+      expect(hasError).true
+      expect(bytesLen).eq(50000 * 2)
+    })
+
+    it('empty-data', async () => {
+      const bin = await freecdn.fetchBin('/hash-empty')
+      expect(bin).length(0)
     })
   })
 

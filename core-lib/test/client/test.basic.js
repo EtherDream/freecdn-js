@@ -119,58 +119,46 @@ describe('basic', () => {
     })
   })
 
-
   describe('range request', () => {
-    it('hello world 1-3', async () => {
-      const req = new Request('/hello', {
-        headers: {
-          range: 'bytes=1-3'
-        }
-      })
-      const txt = await freecdn.fetchText(req)
-      expect(txt).eq('el')
+    it('range', async () => {
+      for (let i = 0; i < 10; i++) {
+        const fileLen = 1234567
+        const len = Math.random() * fileLen | 0
+        const begin = Math.random() * fileLen | 0
+        const end = Math.min(begin + len, fileLen)
+  
+        const req = new Request('/range-file', {
+          headers: {
+            range: `bytes=${begin}-${end}`
+          }
+        })
+        const res = await freecdn.fetch(req)
+        const buf = await res.arrayBuffer()
+        const bin = new Uint8Array(buf)
+        const exp = randBytes(fileLen, 1)
+  
+        expect(res.status).eq(206)
+        expect(bin).deep.eq(exp.subarray(begin, end))
+      }
     })
 
-    it('hello world 10-100', async () => {
-      const req = new Request('/hello', {
-        headers: {
-          range: 'bytes=10-100'
-        }
-      })
-      const txt = await freecdn.fetchText(req)
-      expect(txt).eq('d')
-    })
+    it('range-no-end', async () => {
+      for (let i = 0; i < 10; i++) {
+        const fileLen = 1234567
+        const begin = Math.random() * fileLen | 0
+        const req = new Request('/range-file', {
+          headers: {
+            range: `bytes=${begin}-`
+          }
+        })
+        const res = await freecdn.fetch(req)
+        const buf = await res.arrayBuffer()
+        const bin = new Uint8Array(buf)
+        const exp = randBytes(fileLen, 1)
 
-    it('big file 0-N', async () => {
-      const N = 1024 ** 2 + 1
-      const req = new Request('/4MB-file', {
-        headers: {
-          range: `bytes=0-${N}`
-        }
-      })
-      const res = await freecdn.fetch(req)
-      const bin = await res.arrayBuffer()
-      const arr = new Uint8Array(bin)
-      expect(arr).length(N)
-      expect(arr[0]).eq(1)
-      expect(arr[N - 2]).eq(1)
-      expect(arr[N - 1]).eq(2)
-    })
-
-    it('big file N-', async () => {
-      const N = 1024 ** 2 * 3 - 1
-      const req = new Request('/4MB-file', {
-        headers: {
-          range: `bytes=${N}-`
-        }
-      })
-      const res = await freecdn.fetch(req)
-      const bin = await res.arrayBuffer()
-      const arr = new Uint8Array(bin)
-      expect(arr).length(1024 ** 2 + 1)
-      expect(arr[0]).eq(3)
-      expect(arr[1]).eq(4)
-      expect(arr[arr.length - 1]).eq(4)
+        expect(res.status).eq(206)
+        expect(bin).deep.eq(exp.subarray(begin))
+      }
     })
   })
 
