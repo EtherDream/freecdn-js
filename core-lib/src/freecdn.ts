@@ -155,24 +155,31 @@ class FreeCDN {
 
     // 如果文件只有一个 hash 则不用流模式（必须完整下载才能校验 hash）
     if (fileHash) {
+      let resArgs: ResponseArgs
+      let resBody: Uint8Array | undefined
+
       fileLoader.onOpen = (args) => {
-        fileLoader.onData = (body) => {
-          const res = new Response(body, args)
-          if (cacheable && body.length < 1024 * 1024 * 5) {
-            const cacheRes = res.clone()
-            // 字段可在控制台列表中显示，方便调试
-            cacheRes.headers.set('content-length', body.length + '')
-            cacheRes.headers.set('x-raw-url', req.url)
-            CacheManager.addHash(fileHash, cacheRes)
-          }
-          promiseObj.resolve(res)
+        resArgs = args
+      }
+      fileLoader.onData = (body) => {
+        resBody = body
+      }
+      fileLoader.onEnd = () => {
+        const body = resBody || EMPTY_BUF
+        const res = new Response(body, resArgs)
+
+        if (cacheable && body.length < 1024 * 1024 * 5) {
+          const cacheRes = res.clone()
+          // 字段可在控制台列表中显示，方便调试
+          cacheRes.headers.set('content-length', body.length + '')
+          cacheRes.headers.set('x-raw-url', req.url)
+          CacheManager.addHash(fileHash, cacheRes)
         }
+        promiseObj.resolve(res)
       }
       fileLoader.onError = (err) => {
         console.warn('[FreeCDN]', err.message, err.urlErrs)
         promiseObj.reject(err)
-      }
-      fileLoader.onEnd = () => {
       }
       fileLoader.open()
       return promiseObj
@@ -213,7 +220,7 @@ class FreeCDN {
       controller.close()
     }
     fileLoader.onError = (err) => {
-      controller.error()
+      controller.error(err)
       console.warn('[FreeCDN]', err.message, err.urlErrs)
       promiseObj.reject(err)
     }
