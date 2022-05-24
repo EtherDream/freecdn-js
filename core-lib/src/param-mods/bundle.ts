@@ -1,4 +1,12 @@
-type bundle_file_map_t = Map<string /* path */, Response>
+const enum ParamBundleState {
+  LOADING = 1,
+}
+type bundle_file_map_value_t = Response | PromiseX<Response> | ParamBundleState.LOADING
+
+type bundle_file_map_t = Map<string /* path */, bundle_file_map_value_t>
+
+type bundle_cache_t = bundle_file_map_t | PromiseX<bundle_file_map_t>
+
 
 class ParamBundle extends ParamBase {
 
@@ -12,9 +20,7 @@ class ParamBundle extends ParamBase {
     return [conf]
   }
 
-  private static cacheMap = new Map<string /* pkgUrl */,
-    may_async<bundle_file_map_t>
-  >()
+  private static cache = new Map<string /* pkgUrl */, bundle_cache_t>()
 
 
   public constructor(
@@ -27,105 +33,123 @@ class ParamBundle extends ParamBase {
     if (fileLoader.cdn.isSubReq) {
       return
     }
-    let fileMap: bundle_file_map_t
+    let fileMap = ParamBundle.cache.get(this.packUrl)
+    if (!fileMap) {
+      // init
+      fileMap = promisex()
+      ParamBundle.cache.set(this.packUrl, fileMap)
 
-    const r = ParamBundle.cacheMap.get(this.packUrl)
-    if (r === undefined) {
-      const signal = promisex<bundle_file_map_t>()
-      ParamBundle.cacheMap.set(this.packUrl, signal)
-
-      fileMap = new Map()
-      await this.loadPkg(fileLoader, fileMap)
-
-      ParamBundle.cacheMap.set(this.packUrl, fileMap)
-      signal.resolve(fileMap)
-
-    } else if (isPromise(r)) {
-      fileMap = await r
-    } else {
-      fileMap = r
+      this.loadPkg(fileLoader, fileMap)
+        .catch(fileMap.reject.bind(fileMap))
     }
 
-    const path = fileLoader.suffix || ''
-    const res = fileMap.get(path)
-    if (res) {
-      return res.clone()
-    }
-    if (path === '') {
-      const res = fileMap.get('index.html')
-      if (res) {
-        fileLoader.suffix = 'index.html'
-        return res.clone()
+    if (isPromise(fileMap)) {
+      try {
+        fileMap = await fileMap
+      } catch (err) {
+        if (typeof err === 'string') {
+          this.warn(err)
+        } else {
+          console.assert(err instanceof ReaderError, err)
+        }
+        return
       }
+    }
+
+    let res: bundle_file_map_value_t | undefined
+
+    for (;;) {
+      const path = fileLoader.suffix
+      res = fileMap.get(path)
+      if (res) {
+        break
+      }
+      if (path === '') {
+        res = fileMap.get('index.html')
+        if (res) {
+          fileLoader.suffix = 'index.html'
+        }
+        break
+      }
+      if (path.endsWith('/')) {
+        res = fileMap.get(path + 'index.html')
+        if (res) {
+          fileLoader.suffix = path + 'index.html'
+        }
+        break
+      }
+      if (fileMap.has(path + '/index.html')) {
+        fileLoader.suffix = path + '/index.html'
+        return new Response("<script>location.pathname+='/'</script>")
+      }
+      break
+    }
+    if (!res) {
       return
     }
-    if (path.endsWith('/')) {
-      const res = fileMap.get(path + 'index.html')
-      if (res) {
-        fileLoader.suffix = path + 'index.html'
-        return res.clone()
-      }
-      return
+    if (res === ParamBundleState.LOADING) {
+      // register callback
+      res = promisex()
+      fileMap.set(fileLoader.suffix, res)
     }
-    if (fileMap.has(path + '/index.html')) {
-      fileLoader.suffix = path + '/index.html'
-      return new Response("<script>location.pathname+='/'</script>")
+    if (isPromise(res)) {
+      res = await res
     }
+    return res.clone()
   }
 
-  private async loadPkg(fileLoader: FileLoader, fileMap: bundle_file_map_t) {
+  private async loadPkg(fileLoader: FileLoader, fileMapSignal: PromiseX<bundle_file_map_t>) {
     type conf_t = {
       [file: string]: {
         [headerName: string] : string | number
       }
     }
+    const fileMap: bundle_file_map_t = new Map()
 
-    // TODO: support stream
     const cdn = new FreeCDN()
     cdn.manifest = fileLoader.cdn.manifest
     cdn.weightConf = fileLoader.cdn.weightConf
     cdn.isSubReq = true
 
-    let pkgBin: Uint8Array
+    const reader = new Reader()
     try {
-      pkgBin = await cdn.fetchBin(this.packUrl)
+      const res = await cdn.fetch(this.packUrl)
+      reader.source = res.body!.getReader()
     } catch {
-      this.warn('failed to load')
-      return
+      throw 'failed to load'
     }
 
-    const pos = pkgBin.indexOf(13 /* '\r' */)
-    if (pos === -1) {
-      this.warn('missing header')
-      return
+    // delimiter `\r`
+    const delimPos = await reader.findAsync(13)
+    if (delimPos === -1) {
+      throw 'missing header'
     }
-    const confBin = pkgBin.subarray(0, pos)
+    const confBin = await reader.readBytesAsync(delimPos + 1)
     const confMap: conf_t = parseJson(bytesToUtf8(confBin))
-    if (!confMap) {
-      this.warn('invalid header')
-      return
+    if (!confMap || typeof confMap !== 'object') {
+      throw 'invalid header'
     }
 
-    const bodyBin = pkgBin.subarray(pos + 1)
-    let offset = 0
+    for (const path of Object.keys(confMap)) {
+      fileMap.set(path, ParamBundleState.LOADING)
+    }
+    fileMapSignal.resolve(fileMap)
 
-    for (const [file, conf] of Object.entries(confMap)) {
-      const len = +conf['content-length']
-      if (!(len >= 0)) {
-        this.warn('invalid content-length')
-        return
+    for (const [path, headers] of Object.entries(confMap)) {
+      const fileLen = +headers['content-length']
+      if (!(fileLen >= 0)) {
+        throw 'invalid content-length'
       }
-      if (offset + len > bodyBin.length) {
-        this.warn('invalid offset')
-        return
-      }
-      const fileBuf = bodyBin.subarray(offset, offset + len)
+      const fileBuf = await reader.readBytesAsync(fileLen)
+
       const res = new Response(fileBuf, {
-        headers: confMap[file] as HeadersInit
+        headers: confMap[path] as HeadersInit,
       })
-      fileMap.set(file, res)
-
-      offset += len
+      const signal = fileMap.get(path)
+      if (signal !== ParamBundleState.LOADING) {
+        (signal as PromiseX<Response>).resolve(res)
+      }
+      fileMap.set(path, res)
     }
   }
 
