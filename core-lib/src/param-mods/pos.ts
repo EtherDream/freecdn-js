@@ -19,7 +19,7 @@ class ParamPos extends ParamBase {
   }
 
   public onResponse(resArgs: ResponseArgs) {
-    if (resArgs.contentLen !== -1) {
+    if (resArgs.contentLen >= 0) {
       if ((resArgs.contentLen -= this.remain) < 0) {
         resArgs.contentLen = 0
       }

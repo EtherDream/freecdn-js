@@ -1,7 +1,3 @@
-const enum ParamStreamConf {
-  MAX_QUEUE_LEN = 64 * 1024 * 1024
-}
-
 class ParamStream extends ParamBase {
 
   public static parseConf(conf: string) {
@@ -25,7 +21,7 @@ class ParamStream extends ParamBase {
 
   public onData(chunk: Uint8Array) {
     this.queueLen += chunk.length
-    if (this.queueLen > ParamStreamConf.MAX_QUEUE_LEN) {
+    if (this.queueLen > LEN.MAX_QUEUE) {
       throw new ParamError('max queue length exceeded')
     }
     this.queueArr.push(chunk)

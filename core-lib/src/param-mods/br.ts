@@ -167,20 +167,20 @@ ${BR_GLUE_PATH}
       const inBuf = chunk.subarray(p, p + ParamBrConf.IN_BUF_LEN)
       HEAPU8.set(inBuf, ParamBr.inPtr)
 
-      let avaiablelIn = inBuf.length
-      let availableOut = 0
+      let availIn = inBuf.length
+      let availOut = 0
       do {
-        const ret = asmObj._Update(this.state, 0, avaiablelIn)
+        const ret = asmObj._Update(this.state, 0, availIn)
 
         if (ret === RET.ERROR) {
           const err = asmObj._GetErrorCode()
           this.destory()
           throw new ParamError('br decode failed. code: ' + err)
         }
-        avaiablelIn = asmObj._GetAvailableIn()
-        availableOut = asmObj._GetAvailableOut()
+        availIn = asmObj._GetAvailableIn()
+        availOut = asmObj._GetAvailableOut()
 
-        const len = ParamBrConf.OUT_BUF_LEN - availableOut
+        const len = ParamBrConf.OUT_BUF_LEN - availOut
         if (len === 0) {
           continue
         }

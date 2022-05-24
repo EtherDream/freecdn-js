@@ -2,8 +2,8 @@ class ParamXor extends ParamBase {
   public static reuse = true
 
   public static parseConf(conf: string) {
-    const key = +conf | 0
-    if (key < 0 || key > 255) {
+    const key = +conf >>> 0
+    if (key > 255) {
       return 'invalid value'
     }
     return [key]

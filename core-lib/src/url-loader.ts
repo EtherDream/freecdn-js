@@ -117,7 +117,7 @@ class UrlLoader {
       }
     }
 
-    if (resArgs.contentLen !== -1) {
+    if (resArgs.contentLen >= 0) {
       resArgs.headers.set('content-length', resArgs.contentLen + '')
     }
     this.onResponse(resArgs)
@@ -173,7 +173,7 @@ class UrlLoader {
   }
 
   public resume() {
-    this.pauseSignal?.resolve()
+    this.pauseSignal!.resolve()
     this.pauseSignal = undefined
   }
 

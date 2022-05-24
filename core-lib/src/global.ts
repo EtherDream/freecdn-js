@@ -34,7 +34,7 @@ const EMPTY_BUF = new Uint8Array(0)
 const CRYPTO = crypto.subtle
 
 
-let gInited: boolean | PromiseX
+let gInited: true | PromiseX
 
 async function globalInit() {
   if (gInited) {

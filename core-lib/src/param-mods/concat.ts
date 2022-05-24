@@ -94,7 +94,7 @@ class ParamConcat extends ParamBase {
         if (pos + size > rangeBegin) {
           // 当前文件多余部分由 FileLoader 丢弃
           if (pos) {
-            headers.set('content-range', `bytes ${pos}-/*`)
+            headers.set('content-range', `bytes ${pos}-`)
           }
           break
         }
@@ -119,19 +119,15 @@ class ParamConcat extends ParamBase {
       }
       this.abortCtrl = new AbortController()
 
-      let res: Response
       try {
-        res = await cdn.fetch(info.url, {
+        const res = await cdn.fetch(info.url, {
           signal: this.abortCtrl.signal,
         })
+        reader = res.body!.getReader()
       } catch (err) {
         controller.error(err)
         return false
       }
-      if (!res.body) {
-        return Error('no body')
-      }
-      reader = res.body.getReader()
       return true
     }
 
@@ -154,7 +150,7 @@ class ParamConcat extends ParamBase {
     }
 
     const stream = new ReadableStream({
-      async start(c: typeof controller) {
+      async start(c) {
         controller = c
         await openNextFile()
       },
