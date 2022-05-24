@@ -96,7 +96,7 @@ class FileLoader {
   }
 
   private buildResRange(resArgs: ResponseArgs) {
-    const begin = this.rangeBegin as number
+    const begin = this.rangeBegin!
     let end = 0
     if (this.rangeEnd) {
       end = this.rangeEnd - 1
@@ -176,7 +176,7 @@ class FileLoader {
     let index = 0
 
     urlConfs.forEach((conf, i) => {
-      const w = Network.getUrlWeight(conf.url as string, now, this.cdn.weightConf)
+      const w = Network.getUrlWeight(conf.url!, now, this.cdn.weightConf)
       if (w > weight) {
         weight = w
         index = i
@@ -227,7 +227,7 @@ class FileLoader {
 
   private createUrlLoader(urlConf: UrlConf) {
     const url = urlConf.url && this.getTargetUrl(urlConf.url)
-    const mods = urlConf.parse(this.cdn.manifest as Manifest)
+    const mods = urlConf.parse(this.cdn.manifest!)
 
     const urlLoader = new UrlLoader(url, mods)
     this.urlLoaderSet.add(urlLoader)

@@ -159,7 +159,7 @@ function stripUrlQuery(url: string) : string {
  * @param url absolute url
  */
 function getHostFromUrl(url: string) : string {
-  const m = url.match(/^https?:\/\/([^/]+)/) as string[]
+  const m = url.match(/^https?:\/\/([^/]+)/) !
   return m[1]
 }
 

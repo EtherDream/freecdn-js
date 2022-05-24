@@ -26,7 +26,7 @@ namespace KeyManager {
       return false
     }
     const signTxt = m[1]
-    const signBin = base64Decode(signTxt) as Uint8Array
+    const signBin = base64Decode(signTxt)!
     const dataBin = data.subarray(0, linePos)
 
     return await CRYPTO.verify({

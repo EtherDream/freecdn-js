@@ -36,7 +36,7 @@ class ParamConcat extends ParamBase {
     if (fileLoader.cdn.isSubReq) {
       return
     }
-    const manifest = fileLoader.cdn.manifest as Manifest
+    const manifest = fileLoader.cdn.manifest!
     const fileInfos: {url: string, size: number}[] = []
 
     const REG_WILDCARD = /\[(\d+)-(\d+)\]/

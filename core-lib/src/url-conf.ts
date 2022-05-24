@@ -97,8 +97,8 @@ class UrlConf {
     }
 
     mods.sort((a, b) =>
-      ((a.constructor as ParamSub).priority as number) -
-      ((b.constructor as ParamSub).priority as number)
+      ((a.constructor as ParamSub).priority!) -
+      ((b.constructor as ParamSub).priority!)
     )
     return mods
   }

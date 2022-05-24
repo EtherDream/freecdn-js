@@ -72,7 +72,7 @@ class Manifest {
       last = REG_HEAD_LINE.lastIndex
     }
 
-    const m0 = this.getParams('@__default__') as params_t
+    const m0 = this.getParams('@__default__')!
     const m1 = this.getParams('@global')
 
     this.globalParams = m1 ? new Map([...m0, ...m1]) : m0
